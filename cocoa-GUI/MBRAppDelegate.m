@@ -109,7 +109,7 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		timer_ = [NSTimer timerWithTimeInterval:10 target:self selector:@selector(checkRequests) userInfo:nil repeats:YES];
+		timer_ = [NSTimer scheduledTimerWithTimeInterval:10 target:self selector:@selector(checkRequests) userInfo:nil repeats:YES];
 	}
 	return self;
 }
