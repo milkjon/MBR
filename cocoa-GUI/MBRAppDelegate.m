@@ -5,12 +5,12 @@
 //  Created by Jonathan on 9/23/09.
 //
 
-#import "UntitledAppDelegate.h"
+#import "MBRAppDelegate.h"
 #import "MBTune.h"
 
 #define kTunes @"tunes"
 
-@implementation UntitledAppDelegate
+@implementation MBRAppDelegate
 
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification 

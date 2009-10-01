@@ -7,7 +7,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface UntitledAppDelegate : NSObject {
+@interface MBRAppDelegate : NSObject {
 	NSMutableArray *tunes;
 
 	IBOutlet NSArrayController *arrayController;
