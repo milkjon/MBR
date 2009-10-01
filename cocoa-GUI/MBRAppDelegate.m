@@ -93,25 +93,32 @@
 		NSLog(@"%@", error);	
 }
 
+- (void) checkRequests
+{
+	// FIXME: Implementation missing
+	//     - Check if this could be done via stdout or something
+	
+	// Read the file
+	// Add new requests to the array.
+	
+	NSLog(@"check requests");
+}
+
 - (id) init
 {
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		timer_ = [NSTimer timerWithTimeInterval:10 target:self selector:@selector(checkRequests) userInfo:nil repeats:YES];
+		timer_ = [NSTimer scheduledTimerWithTimeInterval:10 target:self selector:@selector(checkRequests) userInfo:nil repeats:YES];
 	}
 	return self;
 }
 
 - (void) dealloc
 {
-<<<<<<< HEAD
-	[tunes release];
-=======
 	[requests release];
 	[timer_ invalidate];
 	[timer_ release];
->>>>>>> 3ee0d66... renamed tunes array to requests
 	[super dealloc];
 }
 
