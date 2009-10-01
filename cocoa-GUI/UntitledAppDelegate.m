@@ -19,8 +19,6 @@
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
 	
-	tunes = [[NSMutableArray alloc] init];
-
 	// Create two dummy objects and add them to the list
 	MBTune* tune1 = [[[MBTune alloc] init] autorelease];
 	[tune1 setTrackID: @"23746"];
@@ -93,6 +91,21 @@
 	
 	if (error)
 		NSLog(@"%@", error);	
+}
+
+- (id) init
+{
+	self = [super init];
+	if (self != nil) {
+		tunes = [[NSMutableArray alloc] init];
+	}
+	return self;
+}
+
+- (void) dealloc
+{
+	[tunes release];
+	[super dealloc];
 }
 
 
