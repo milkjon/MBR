@@ -8,7 +8,7 @@
 #import <Cocoa/Cocoa.h>
 
 @interface MBRAppDelegate : NSObject {
-	NSMutableArray *tunes;
+	NSMutableArray *requests;
 	NSTimer *timer_;
 	
 	IBOutlet NSArrayController *arrayController;
