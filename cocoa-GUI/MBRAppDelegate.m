@@ -8,7 +8,7 @@
 #import "MBRAppDelegate.h"
 #import "MBTune.h"
 
-#define kTunes @"tunes"
+#define kRequests @"requests"
 
 @implementation MBRAppDelegate
 
@@ -34,10 +34,10 @@
 	[tune2 setLength: @"3:19"];
 	[tune2 setRequester: @"Paul"];	
 	
-	[self willChangeValueForKey: kTunes];
-	[tunes addObject: tune1];
-	[tunes addObject: tune2];
-	[self didChangeValueForKey: kTunes];
+	[self willChangeValueForKey: kRequests];
+	[requests addObject: tune1];
+	[requests addObject: tune2];
+	[self didChangeValueForKey: kRequests];
 }
 
 - (IBAction) add: (id) sender
@@ -49,9 +49,9 @@
 	[tune setArtist: @"Dungen"];
 	[tune setRequestTime: [NSDate date]];
 	
-	[self willChangeValueForKey: kTunes];
-	[tunes addObject: tune];	
-	[self didChangeValueForKey: kTunes];
+	[self willChangeValueForKey: kRequests];
+	[requests addObject: tune];	
+	[self didChangeValueForKey: kRequests];
 }
 
 - (IBAction) addToiTunesPlaylist: (id) sender
@@ -97,14 +97,21 @@
 {
 	self = [super init];
 	if (self != nil) {
-		tunes = [[NSMutableArray alloc] init];
+		requests = [[NSMutableArray alloc] init];
+		timer_ = [NSTimer timerWithTimeInterval:10 target:self selector:@selector(checkRequests) userInfo:nil repeats:YES];
 	}
 	return self;
 }
 
 - (void) dealloc
 {
+<<<<<<< HEAD
 	[tunes release];
+=======
+	[requests release];
+	[timer_ invalidate];
+	[timer_ release];
+>>>>>>> 3ee0d66... renamed tunes array to requests
 	[super dealloc];
 }
 

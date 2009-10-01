@@ -2604,15 +2604,15 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBBindingConnection" key="connection">
-						<string key="label">contentArray: tunes</string>
+						<string key="label">contentArray: requests</string>
 						<reference key="source" ref="603553013"/>
 						<reference key="destination" ref="976324537"/>
 						<object class="NSNibBindingConnector" key="connector">
 							<reference key="NSSource" ref="603553013"/>
 							<reference key="NSDestination" ref="976324537"/>
-							<string key="NSLabel">contentArray: tunes</string>
+							<string key="NSLabel">contentArray: requests</string>
 							<string key="NSBinding">contentArray</string>
-							<string key="NSKeyPath">tunes</string>
+							<string key="NSKeyPath">requests</string>
 							<int key="NSNibBindingConnectorVersion">2</int>
 						</object>
 					</object>
