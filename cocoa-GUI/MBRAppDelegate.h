@@ -9,7 +9,8 @@
 
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *tunes;
-
+	NSTimer *timer_;
+	
 	IBOutlet NSArrayController *arrayController;
 	IBOutlet NSTableView *tableView;
 }
