@@ -15,14 +15,14 @@
 	return artist_;
 }
 
--(NSString*) path
-{
-	return path_;
-}
-
 -(NSString*) title
 {
 	return title_;
+}
+
+-(NSString*) album
+{
+	return album_;
 }
 
 -(NSString*) requester
@@ -59,15 +59,6 @@
 	artist_ = [artist retain];
 }
 
--(void) setPath: (NSString*) path
-{
-	if (path == path_)
-		return;
-	
-	[path_ release];
-	path_ = [path retain];
-}
-
 -(void) setTitle: (NSString*) title
 {
 	if (title == title_)
@@ -75,6 +66,15 @@
 	
 	[title_ release];
 	title_ = [title retain];
+}
+
+-(void) setAlbum: (NSString*) album
+{
+	if (album == album_)
+		return;
+	
+	[album_ release];
+	album_ = [album retain];
 }
 
 -(void) setRequester: (NSString*) requester
