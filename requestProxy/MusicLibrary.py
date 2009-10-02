@@ -99,7 +99,7 @@ class MusicLibrary:
 	
 	# Public methods:
 	
-	def searchBy_Letter(self, theLetter):
+	def searchBy_Letter(self, theLetter, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
 		#	(string)        the XML data representing the tracklist
@@ -115,28 +115,28 @@ class MusicLibrary:
 		
 		pass
 		
-	def searchBy_Artist(self, searchStr):
+	def searchBy_Artist(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
 		#	(string)        the XML data representing the tracklist
 		
 		pass
 		
-	def searchBy_Title(self, searchStr):
+	def searchBy_Title(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
 		#	(string)        the XML data representing the tracklist
 		
 		pass
 		
-	def searchBy_Genre(self, searchStr):
+	def searchBy_Genre(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
 		#	(string)        the XML data representing the tracklist
 		
 		pass
 		
-	def searchBy_Any(self, searchStr):
+	def searchBy_Any(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
 		#	(string)        the XML data representing the tracklist
