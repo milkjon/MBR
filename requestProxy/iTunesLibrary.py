@@ -2,6 +2,8 @@
 #  MBRadio
 #
 #  iTunes XML DB Implementation
+#
+#  iTunesLibrary subclasses MusicLibrary
 #----------------------------------------------------------------------------------------------------------------------#
 
 import MusicLibrary
@@ -17,9 +19,10 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
 		p.ParseFile(file(path))
-		print "   Loaded " + str(self.trackCount) + " tracks!"
 		
-		print self.tracks
+		MusicLibrary.MusicLibrary.load(self)
+		
+		print "   Loaded " + str(self.trackCount) + " tracks!"
 		
 	# Private variables
 	
@@ -28,7 +31,7 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	inTracks = 0
 	inTrack = 0
 	inData = 0
-	currentKey = ""
+	currentKey = ''
 	skipRest = 0
 	trackID = ''
 	trackTitle = ''

@@ -21,21 +21,21 @@ class MusicLibrary:
 		
 		asciiLetters = string.ascii_uppercase
 		for c in asciiLetters:
-			print "this letter = " + c
 			self.byLetter[c] = []
 			
 		self.byLetter['0'] = []
 
 		
 	def load(self):
-		# Must be implemented!
+		# Details must be implemented by the subclass, and then call this function to finish
+		# creating the lookup tables
 		
-		# This should do whatever is required to initialize the library
-		# Typical arguments might be a filename specifying the database path
+		# sort the "song by letter" lists
+		for k in self.byLetter.keys():
+			self.byLetter[k].sort()
+
 		
-		pass
-	
-		
+			
 	# Private methods:
 	
 	def addTrack(self, trackID, trackTitle, trackArtist, trackAlbum, trackGenre, trackDuration):
@@ -43,7 +43,7 @@ class MusicLibrary:
 		theArtist = trackArtist.strip()
 		theTitle = trackTitle.strip()
 		if theArtist:
-			theName = theArtist
+			theName = theArtist + ' - ' + theTitle
 		else:
 			theName = theTitle
 		
@@ -58,12 +58,11 @@ class MusicLibrary:
 		if firstLetter:
 			firstLetter = firstLetter.encode('ascii','replace')
 			firstLetter = firstLetter.upper()
-			print "first letter = " + firstLetter
 			
-			if firstLetter.isalpha():
-				self.byLetter[firstLetter].append(trackID)
-			else:
-				self.byLetter['0'].append(trackID)
+			if not firstLetter.isalpha():
+				firstLetter = '0'
+			
+			self.byLetter[firstLetter].append((theName, trackID))
 		
 		self.trackCount = self.trackCount + 1
 		
@@ -101,18 +100,47 @@ class MusicLibrary:
 	# Public methods:
 	
 	def searchBy_Letter(self, theLetter):
+		# returns:
+		#	(int)     -1    on error
+		#	(string)        the XML data representing the tracklist
+		
+		# oh, just in case:
+		theLetter = theLetter[0]
+		theLetter = theLetter.upper()
+		
+		if not theLetter.isalpha() and theLetter != '0':
+			return -1
+			
+		
+		
 		pass
 		
 	def searchBy_Artist(self, searchStr):
+		# returns:
+		#	(int)     -1    on error
+		#	(string)        the XML data representing the tracklist
+		
 		pass
 		
 	def searchBy_Title(self, searchStr):
+		# returns:
+		#	(int)     -1    on error
+		#	(string)        the XML data representing the tracklist
+		
 		pass
 		
 	def searchBy_Genre(self, searchStr):
+		# returns:
+		#	(int)     -1    on error
+		#	(string)        the XML data representing the tracklist
+		
 		pass
 		
 	def searchBy_Any(self, searchStr):
+		# returns:
+		#	(int)     -1    on error
+		#	(string)        the XML data representing the tracklist
+		
 		pass
 		
 	
