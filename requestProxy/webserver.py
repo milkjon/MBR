@@ -8,7 +8,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import string, cgi, time, urlparse, zlib, os.path, unicodedata
+import string, cgi, time, urlparse, zlib, os.path, unicodedata, datetime, time
 from os import curdir, sep
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -30,22 +30,26 @@ global Hosts, Requests, NewRequests
 # Hosts dictionary - all remote hosts (users) that have made requests
 #	Contents:
 #		key:	IP-address of host
-#		value:	dict{ 'requests':	list[(requestID1, timestamp1), (requestID2, timestamp2), ...]
-#					  'banned':		0 or 1
+#		value:	dict{ 'requests':		list[ dict{'id': (requestID), 'songID': (songID), 'time': (timestamp)}, ... ]
+#					  'banned':			0 or 1
 #					}
+
 Hosts = {}
 
 # Requests list - all requests received by server
 #	Contents:
-#		list of 2-tuples:	(requestID,
-#							   dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP),
-#							         'name': (requestor), 'dedication': (dedication info) }
-#							)
+#		list[ dict{ 'id': (requestID),
+#					'info': dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP),
+#									'name': (requestor), 'dedication': (dedication info) }
+#		          }
+#		    ]
+
 Requests = []
 
 # NewRequests list - requests waiting to be collected by the display program.
 #	Contents:
-#		list of requestID's
+#		list[ (requestID1), (requestID2), ... ]
+
 NewRequests = []
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -69,7 +73,7 @@ def loadConfig():
 	Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
 
 	# Max requests are enforced on sliding hour-long timeframe
-	Config['maxRequests_Host'] = 10
+	Config['maxRequests_User'] = 10
 	Config['maxRequests_Artist'] = 5
 	Config['maxRequests_Album'] = 5
 	Config['maxRequests_Song'] = 2
@@ -108,9 +112,9 @@ class MBRadio(BaseHTTPRequestHandler):
 	def do_GET(self):
 			
 		#---------------------------------------------------------------------------------------------------------------
-		#  Acceptable query parameters
+		#  Acceptable GET parameters
 		#  
-		#  HTTP requests are received by the server in the format /command/?var1=value&var2=value....
+		#  HTTP GET requests are received by the server in the format /command/?var1=value&var2=value....
 		#---------------------------------------------------------------------------------------------------------------
 		#
 		#  Handled commands:
@@ -156,6 +160,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Returns the local time on the DJ's computer. Needed for certain things on the server.
 		#
 		#		Query string parameters: (none)
+		#
+		#---------------------------------------------------------------------------------------------------------------
 		
 		try:
 			# split the request into the "file name" and the "query string"
@@ -167,7 +173,7 @@ class MBRadio(BaseHTTPRequestHandler):
 				args = urlparse.parse_qs(queryStr);
 				
 				if not args:
-					sendError(500, 'Invalid search parameters')
+					self.sendError(500, 'Invalid search parameters')
 					return
 
 				if args.has_key('by') and args.has_key('for') and args['by'] and args['for']:
@@ -198,11 +204,11 @@ class MBRadio(BaseHTTPRequestHandler):
 					elif searchBy == "any":
 						resultSet = Library.searchBy_Any(searchFor)
 					else:
-						sendError(500, 'Unknown search parameter by=' + searchBy)
+						self.sendError(500, 'Unknown search parameter by=' + searchBy)
 						return
 						
 					if resultSet is None:
-						sendError(500, 'Search error occurred')
+						self.sendError(500, 'Search error occurred')
 						return				
 					
 					# sort the results
@@ -240,7 +246,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			
 			# error fall-through
-			sendError(500, 'Server error')
+			self.sendError(500, 'Server error')
 			return
 
 		except:
@@ -248,34 +254,93 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 	#enddef do_GET
 	
+	def sendRequestError(self, code):
+
+		if code == 601:
+			message = 'Request limit reached: the same song can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+		elif code == 602:
+			message = 'Request limit reached: the same artist can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+		elif code == 604:
+			message = 'Request limit reached: the same album can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+		elif code == 700:
+			message = "Invalid request (Unknown error)"
+		elif code == 701:
+			message = "Your IP has been banned from making requests"
+		elif code == 703:
+			message = "Requested song ID invalid"
+		elif code == 704:
+			message = 'Request limit reached: you can only request ' + str(Config['maxRequests_User']) + ' songs every 60 minutes'
+		elif code == 708:
+			message = 'You have already requested this song'
+		else:
+			message = "Server Error"
+			code = 700
+			
+		response = '''<?xml version="1.0" encoding="UTF-8"?>
+					<request>
+						<application><apptype>MBRadio Server</apptype><version>1.0</version></application>
+						<status><code>''' + str(code) + '</code><message>' + message + '</message></status></request>'
+
+		self.send_response(200)
+		self.send_header('Content-type', 'text/xml')
+		self.end_headers()
+		self.wfile.write(response)
+		return
 	
 	def do_POST(self):
-
+		
+		#---------------------------------------------------------------------------------------------------------------
+		#  Acceptable POST parameters
+		#  
+		#  HTTP POST requests are received in the format /command/ along with standard HTTP Form Post Data
+		#---------------------------------------------------------------------------------------------------------------
+		#
+		#  Handled commands:
+		#
+		#	/req/
+		#		Form data parameters:
+		#			NAME		TYPE			DESCRIPTION
+		#			----------------------------------------------------------------------------------------------------
+		#			songID 		integer			the iTunes track id
+		#			host		string 			IP address of requester
+		#			name 		string 			Name of the person making the request
+		#			dedication	string			A short message (dedication) for the request
+		#
+		#		Returns XML of the form:
+		#			<request><application><apptype>MBRadio Server</apptype><version>1.0</version></application>
+		#				<status><code></code><message></message><requestID></requestID></status>
+		#				<song id=""><artist></artist><title></title><album></album><genre></genre><duration></duration></song>
+		#			</request>
+		#
+		#		Status codes:
+		#			200		OK		Request recieved!
+		#			601		ERROR	Request limit reached: Song can only be requested xx times every 60 minutes
+		#			602		ERROR	Request limit reached: Artist can only be requested xx times every 60 minutes
+		#			604		ERROR	Request limit reached: Album can only be requested xx times every 60 minutes
+		#			605		ERROR	Song is already in the request list
+		#			700		ERROR	Invalid request. (Unknown error)
+		#			701		ERROR	Host IP is Banned
+		#			703		ERROR	Requested song ID invalid
+		#			704		ERROR	Request limit reached: User can only request xx songs every 60 minutes
+		#			708		ERROR	You have already requested this song.
+		#
+		#---------------------------------------------------------------------------------------------------------------
+	
 		try:
 		
 			# split the request into the "file name" and the "query string"
 			fileStr, sepChar, queryStr = self.path.partition('?')
 			
-			# Acceptable "file names"
-			#	/req/
-			#		Form data parameters:
-			#			NAME		TYPE			DESCRIPTION
-			#			------------------------------------------------------------------------------------------------
-			#			songID 		integer			the iTunes track id
-			#			host		string 			IP address of requester
-			#			name 		string 			Name of the person making the request
-			#			dedication	string			A short message (dedication) for the request
-			
 			if fileStr == '/req/':
 			
 				# get the form data
 				form = cgi.parse_qs(self.rfile.read(int(self.headers.getheader('Content-Length'))))
-				
+
 				if not form:
-					sendError(500, 'Invalid post data')
+					self.sendRequestError(700)
 					return
 				
-				if form.has_key('songID') and form.has_key('songID') and form['songID'] and form['host']:
+				if form.has_key('songID') and form.has_key('host') and form['songID'] and form['host']:
 					global requestCount
 					
 					songID = form['songID'][0]
@@ -291,22 +356,90 @@ class MBRadio(BaseHTTPRequestHandler):
 					else:
 						dedication = ''
 					
+					# is it a valid song?
+					requestedSong = Library.getSong(songID)
+					if requestedSong is None:
+						self.sendRequestError(703)
+						return
+					
+					# lookup in Hosts dict
+					if not Hosts.has_key(hostIP):
+						Hosts[hostIP] = { 'requests': [], 'banned': 0 }
+					
+					# is the host banned?
+					if Hosts[hostIP]['banned']:
+						self.sendRequestError(701)
+						return
+					
+					curTime = time.time()
+					oneHourAgo = curTime - (60 * 60)  # 1 hour = 60 minutes = 60 * 60 seconds
+					tenMinAgo = curTime - (10 * 60)
+					# check if the host request limit has been met:
+					requestsInLastHour = 0
+					requestedSongInLast10Minutes = 0
+					for r in Hosts[hostIP]['requests']:
+						if r['time'] >= oneHourAgo:
+							requestsInLastHour += 1
+							
+						if r['time'] >= tenMinAgo:
+							if r['songID'] == songID:
+								requestedSongInLast10Minutes += 1
+							
+					if requestsInLastHour >= Config['maxRequests_User']:
+						self.sendRequestError(704)
+						return
+						
+					if requestedSongInLast10Minutes > 0:
+						self.sendRequestError(708)
+						return
+
+					# check if the artist, album, or song limit been met:
+					artistRequestsInLastHour = 0
+					albumRequestsInLastHour = 0
+					songRequestsInLastHour = 0
+					for r in Requests:
+						if r['info']['time'] >= oneHourAgo:
+							thisSong = Library.getSong(r['info']['songID'])
+							if not thisSong is None:
+								if thisSong['artist'] == requestedSong['artist']:
+									artistRequestsInLastHour += 1
+								if thisSong['album'] == requestedSong['album']:
+									albumRequestsInLastHour += 1
+								if r['info']['songID'] == songID:
+									songRequestsInLastHour += 1
+							
+					if songRequestsInLastHour >= Config['maxRequests_Song']:
+						self.sendRequestError(601)
+						return
+					elif artistRequestsInLastHour >= Config['maxRequests_Artist']:
+						self.sendRequestError(602)
+						return
+					elif albumRequestsInLastHour >= Config['maxRequests_Album']:
+						self.sendRequestError(604)
+						return
+					
+					# ok, all checks passed
 					requestCount = requestCount + 1
+					requestID = requestCount
+					requestTime = time.time()
 					
-					# dump to requests XML file (or to stdout???)
+					# update Hosts list
+					Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
 					
-					# FINISH ME!
-					
-					
-					
+					# add request to Requests list
+					Requests.append( { 'id': requestID, \
+										'info': {	'songID': songID, 'time': requestTime, 'host': hostIP, \
+													'name': requestedBy, 'dedication': dedication } } )
+
+					# add to NewRequests list
+					NewRequests.append( requestID )
+
 					# send a response back in XML
 					response = '''<?xml version="1.0" encoding="UTF-8"?>
-								<REQUEST>
+								<request>
 									<application><apptype>MBRadio Server</apptype><version>1.0</version></application>
 									<status><code>200</code><message>Request Received</message>
-										<requestID>''' + str(requestCount) + '''</requestID></status>
-								<song><artist></artist><title></title><album></album><duration></duration></song>
-								</REQUEST>'''
+										<requestID>''' + str(requestID) + '</requestID></status>' + packageSong(songID) + '</request>'
 
 					self.send_response(200)
 					self.send_header('Content-type', 'text/xml')
@@ -314,9 +447,11 @@ class MBRadio(BaseHTTPRequestHandler):
 					self.wfile.write(response)
 					
 					return
+					
+				#endif form.has_key('songID') and form.has_key('host') and form['songID'] and form['host']:
 				
 				# error fall-through
-				sendError(500, 'Server error')
+				self.sendRequestError(700)
 				return
 			
 			#endif fileStr == '/req/'
@@ -422,9 +557,7 @@ def makeSortTuple(songID):
 
 def sortSonglist(songList):
 	songListToSort = map(lambda songID: makeSortTuple(songID), songList)
-	print songListToSort
 	songListToSort.sort()
-	print songListToSort
 	sortedSongList = map(lambda triplet: triplet[2], songListToSort)
 	
 	return sortedSongList
