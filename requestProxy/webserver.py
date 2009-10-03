@@ -4,14 +4,15 @@
 #  HTTP Request Server
 #----------------------------------------------------------------------------------------------------------------------#
 
-import string, cgi, time, urlparse, zlib
+# python library imports
+import string, cgi, time, urlparse, zlib, os.path
 from os import curdir, sep
-import os.path
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
+# local imports
 import iTunesLibrary
 
-DB = iTunesLibrary.iTunesLibrary()
+Library = iTunesLibrary.iTunesLibrary()
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Config
@@ -27,11 +28,17 @@ rootPath = os.path.join(os.path.expanduser('~'), rootDir)
 # Jonathan: This will need to be changed for Mac
 iTunesDB = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
 
-requestCount = 0
+maxRequests_HostPerHour = 10
+maxRequests_ArtistPerHour = 5
+maxRequests_AlbumPerHour = 5
+maxRequests_SongPerHour = 2
+
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  BaseHTTPServer implementation
 #----------------------------------------------------------------------------------------------------------------------#
+
+requestCount = 0
 
 class MBRadio(BaseHTTPRequestHandler):
 
@@ -42,7 +49,13 @@ class MBRadio(BaseHTTPRequestHandler):
 			fileStr, sepChar, queryStr = self.path.partition('?')
 			
 			# Acceptable "file names"
+			#
 			#	/search/
+			#
+			#		This interface is used to search the library for songs. This request is only sent from the
+			#		radio station website to get the tracklist to allow users to request songs. It returns a list of
+			#		songs in XML format.
+			#
 			#		Query string parameters:
 			#			NAME		TYPE			DESCRIPTION
 			#			------------------------------------------------------------------------------------------------
@@ -50,6 +63,17 @@ class MBRadio(BaseHTTPRequestHandler):
 			#			by			option: 		one of [letter|artist|title|genre|any]
 			#			results 	integer 		Number of results to return
 			#			starting	integer			For continuation of search results, starting at this number result
+			#		
+			#	/requests/
+			#
+			#		This interface is only used internally by the request-list display app on the DJ's personal
+			#		computer. It returns the current queue of song requests in XML format. Once the requests have been
+			#		retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
+			#
+			#		Query string parameters:
+			#			NAME		TYPE			DESCRIPTION
+			#			------------------------------------------------------------------------------------------------
+			#			clear 		string			one of [yes|no]  defaults to yes
 			
 			if fileStr == '/search/':
 
@@ -76,15 +100,15 @@ class MBRadio(BaseHTTPRequestHandler):
 						# Execute the search on the music Library!
 						
 						if searchBy == "letter":
-							resultSet = DB.searchBy_Letter(searchFor, results, starting)
+							resultSet = Library.searchBy_Letter(searchFor, results, starting)
 						elif searchBy == "artist":
-							resultSet = DB.searchBy_Artist(searchFor, results, starting)
+							resultSet = Library.searchBy_Artist(searchFor, results, starting)
 						elif searchBy == "genre":
-							resultSet = DB.searchBy_Genre(searchFor, results, starting)
+							resultSet = Library.searchBy_Genre(searchFor, results, starting)
 						elif searchBy == "title":
-							resultSet = DB.searchBy_Title(searchFor, results, starting)
+							resultSet = Library.searchBy_Title(searchFor, results, starting)
 						elif searchBy == "any":
-							resultSet = DB.searchBy_Any(searchFor, results, starting)
+							resultSet = Library.searchBy_Any(searchFor, results, starting)
 						else:
 							self.send_response(500)
 							self.send_header('Content-type', 'text/html')
@@ -95,7 +119,6 @@ class MBRadio(BaseHTTPRequestHandler):
 						# Return the results as an gzipped XML file
 
 						compressedResults = resultSet
-						#print compressedResults
 						#compressedResults = zlib.compress(resultSet)
 						
 						self.send_response(200)
@@ -195,7 +218,7 @@ def main():
 	
 	try:
 		print 'Loading song database...'
-		DB.load(iTunesDB)
+		Library.load(iTunesDB)
 		
 		server = HTTPServer(('', serverPort), MBRadio)
 		print 'Starting MBRadio Webserver'
