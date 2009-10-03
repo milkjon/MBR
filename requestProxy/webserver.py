@@ -1,38 +1,88 @@
 #----------------------------------------------------------------------------------------------------------------------#
-#  MBRadio
+#	MBRadio
+#	webserver.py
+#	
+#	Implements the HTTP Request Server
 #
-#  HTTP Request Server
+#	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import string, cgi, time, urlparse, zlib, os.path
+import string, cgi, time, urlparse, zlib, os.path, unicodedata
 from os import curdir, sep
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 # local imports
 import iTunesLibrary
+import Debug
 
-Library = iTunesLibrary.iTunesLibrary()
 
 #----------------------------------------------------------------------------------------------------------------------#
-#  Config
+#  Globals
 #----------------------------------------------------------------------------------------------------------------------#
 
-serverPort = 15800
+global Library, Config
 
-# Application directory
-# Jonathan: this may need to be changed on the Mac
-rootDir = "mbradio"
-rootPath = os.path.join(os.path.expanduser('~'), rootDir)
+Library = None
+Config = {}
 
-# Jonathan: This will need to be changed for Mac
-iTunesDB = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
+global Hosts, Requests, NewRequests
+# Hosts dictionary - all remote hosts (users) that have made requests
+#	Contents:
+#		key:	IP-address of host
+#		value:	dict{ 'requests':	list[(requestID1, timestamp1), (requestID2, timestamp2), ...]
+#					  'banned':		0 or 1
+#					}
+Hosts = {}
 
-maxRequests_HostPerHour = 10
-maxRequests_ArtistPerHour = 5
-maxRequests_AlbumPerHour = 5
-maxRequests_SongPerHour = 2
+# Requests list - all requests received by server
+#	Contents:
+#		list of 2-tuples:	(requestID,
+#							   dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP),
+#							         'name': (requestor), 'dedication': (dedication info) }
+#							)
+Requests = []
 
+# NewRequests list - requests waiting to be collected by the display program.
+#	Contents:
+#		list of requestID's
+NewRequests = []
+
+#----------------------------------------------------------------------------------------------------------------------#
+#  Load configuration
+#----------------------------------------------------------------------------------------------------------------------#
+
+def loadConfig():
+	global Library, Config
+	
+	# which Library DB to use?  Currently the only acceptable option is "iTunes"
+	Config['Library'] = "iTunes"
+
+	# port to which the HTTP request server binds
+	Config['Port'] = 15800
+
+	# directory for saving prefs and logs
+	# *Jonathan* this may need to be changed on the Mac
+	Config['AppDir'] = os.path.join(os.path.expanduser('~'), ".mbradio")
+
+	# iTunes DB location   *Jonathan* this will need to be changed for Mac
+	Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
+
+	# Max requests are enforced on sliding hour-long timeframe
+	Config['maxRequests_Host'] = 10
+	Config['maxRequests_Artist'] = 5
+	Config['maxRequests_Album'] = 5
+	Config['maxRequests_Song'] = 2
+
+	Library = None
+
+	if Config['Library'] == "iTunes":
+		Library = iTunesLibrary.iTunesLibrary()
+		
+		Debug.out('Loading song database...')
+		Library.load(Config['iTunesDB'])
+	
+#enddef loadConfig
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  BaseHTTPServer implementation
@@ -56,50 +106,60 @@ class MBRadio(BaseHTTPRequestHandler):
 	#enddef sendError
 	
 	def do_GET(self):
+			
+		#---------------------------------------------------------------------------------------------------------------
+		#  Acceptable query parameters
+		#  
+		#  HTTP requests are received by the server in the format /command/?var1=value&var2=value....
+		#---------------------------------------------------------------------------------------------------------------
+		#
+		#  Handled commands:
+		#
+		#	/search/
+		#
+		#		This interface is used to search the library for songs. This request is only sent from the
+		#		radio station website to get the tracklist to allow users to request songs. It returns a list of
+		#		songs in XML format.
+		#
+		#		Query string parameters:
+		#			NAME		TYPE			DESCRIPTION
+		#			----------------------------------------------------------------------------------------------------
+		#			for 		string			string literal to search for
+		#			by			option: 		one of [letter|artist|title|genre|any]
+		#			results 	integer 		Number of results to return
+		#			starting	integer			For continuation of search results, starting at this number result
+		#		
+		#	/new-requests/
+		#
+		#		This interface is only used internally by the request-list display app on the DJ's personal
+		#		computer. It returns the current queue of song requests in XML format. Once the requests have been
+		#		retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
+		#		Any requests that do not originate from the localhost are ignored.
+		#
+		#		Query string parameters:
+		#			NAME		TYPE			DESCRIPTION
+		#			----------------------------------------------------------------------------------------------------
+		#			clear 		string			one of [yes|no]  defaults to yes
+		#
+		#	/requests/
+		#
+		#		This interface is used by the webserver to get a list of recent requests to display on the website.
+		#		Requests are always returned in descending order by the time the request was made.
+		#
+		#		Query string parameters:
+		#			NAME		TYPE			DESCRIPTION
+		#			----------------------------------------------------------------------------------------------------
+		#			results 	integer			Number of results to return
+		#
+		#	/time/
+		#
+		#		Returns the local time on the DJ's computer. Needed for certain things on the server.
+		#
+		#		Query string parameters: (none)
+		
 		try:
-
 			# split the request into the "file name" and the "query string"
 			fileStr, sepChar, queryStr = self.path.partition('?')
-			
-			# Acceptable "file names"
-			#
-			#	/search/
-			#
-			#		This interface is used to search the library for songs. This request is only sent from the
-			#		radio station website to get the tracklist to allow users to request songs. It returns a list of
-			#		songs in XML format.
-			#
-			#		Query string parameters:
-			#			NAME		TYPE			DESCRIPTION
-			#			------------------------------------------------------------------------------------------------
-			#			for 		string			string literal to search for
-			#			by			option: 		one of [letter|artist|title|genre|any]
-			#			results 	integer 		Number of results to return
-			#			starting	integer			For continuation of search results, starting at this number result
-			#		
-			#	/new-requests/
-			#
-			#		This interface is only used internally by the request-list display app on the DJ's personal
-			#		computer. It returns the current queue of song requests in XML format. Once the requests have been
-			#		retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
-			#		Any requests that do not originate from the localhost are ignored.
-			#
-			#		Query string parameters:
-			#			NAME		TYPE			DESCRIPTION
-			#			------------------------------------------------------------------------------------------------
-			#			clear 		string			one of [yes|no]  defaults to yes
-			#
-			#	/new-requests/
-			#
-			#		This interface is only used internally by the request-list display app on the DJ's personal
-			#		computer. It returns the current queue of song requests in XML format. Once the requests have been
-			#		retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
-			#		Any requests that do not originate from the localhost are ignored.
-			#
-			#		Query string parameters:
-			#			NAME		TYPE			DESCRIPTION
-			#			------------------------------------------------------------------------------------------------
-			#			clear 		string			one of [yes|no]  defaults to yes
 			
 			if fileStr == '/search/' and queryStr:
 			
@@ -165,13 +225,15 @@ class MBRadio(BaseHTTPRequestHandler):
 			#endif fileStr == '/search/'
 			
 			
-			if fileStr == '/new-requests/':
+			elif fileStr == '/new-requests/':
+				
+				
 				
 				return
 			#endif fileStr == '/new-requests/':
 			
 			
-			if fileStr == '/requests/':
+			elif fileStr == '/requests/':
 			
 				return
 			#endif fileStr == '/requests/':
@@ -239,8 +301,10 @@ class MBRadio(BaseHTTPRequestHandler):
 					
 					# send a response back in XML
 					response = '''<?xml version="1.0" encoding="UTF-8"?>
-								<REQUEST><application><apptype>MBRadio Server</apptype><version>1.0</version></application>
-								<status><code>200</code><message>Request Received</message><requestID>''' + str(requestCount) + '''</requestID></status>
+								<REQUEST>
+									<application><apptype>MBRadio Server</apptype><version>1.0</version></application>
+									<status><code>200</code><message>Request Received</message>
+										<requestID>''' + str(requestCount) + '''</requestID></status>
 								<song><artist></artist><title></title><album></album><duration></duration></song>
 								</REQUEST>'''
 
@@ -307,36 +371,60 @@ def packageSong(songID):
 		return ""
 	
 	packageStr = '\t<song id=\"' + str(songID) + '\">' + \
-					'<artist>' + unicodeToHTML(song['artist']) + '</artist>' + \
-					'<title>' + unicodeToHTML(song['title']) + '</title>' + \
-					'<album>' + unicodeToHTML(song['album']) + '</album>' + \
-					'<genre>' + unicodeToHTML(song['genre']) + '</genre>' + \
+					'<artist>' + safeXML(song['artist']) + '</artist>' + \
+					'<title>' + safeXML(song['title']) + '</title>' + \
+					'<album>' + safeXML(song['album']) + '</album>' + \
+					'<genre>' + safeXML(song['genre']) + '</genre>' + \
 					'<duration>' +str(song['duration']) + '</duration></song>\n'
 
 	return packageStr
 	
 #enddef packageSong
 
-def unicodeToHTML(theString):
+def safeXML(theString):
 	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
-#enddef unicodeToHTML
+#enddef safeXML
+
+def safeAscii(theString):
+	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
 
 def makeSortTuple(songID):
 	song = Library.getSong(songID)
 	if song is None:
 		return (None, None, None)
 	
-	if song['artist']:
-		return (song['artist'].encode('ascii','replace').upper(), song['title'].encode('ascii','replace').upper(), songID)
+	if song.has_key('sortArtist') and song['sortArtist']:
+		f1 = song['sortArtist']
+	elif song.has_key('artist') and song['artist']:
+		f1 = song['artist']
+	elif song.has_key('title') and song['title']:
+		f1 = song['title']
 	else:
-		theTitle = song['title'].encode('ascii','replace').upper()
-		return (theTitle, theTitle, songID)
+		f1 = None
+		
+	f1 = safeAscii(f1).upper()
+	
+	if song.has_key('sortTitle') and song['sortTitle']:
+		f2 = song['sortTitle']
+	elif song.has_key('sortTitle') and song['title']:
+		f2 = song['title']
+	else:
+		f2 = None
+	
+	if f1 is None or f2 is None:
+		return (None, None, None)
+	
+	f2 = safeAscii(f2).upper()
+	
+	return (f1, f2, songID)
 
 #enddef makeSongName
 
 def sortSonglist(songList):
 	songListToSort = map(lambda songID: makeSortTuple(songID), songList)
+	print songListToSort
 	songListToSort.sort()
+	print songListToSort
 	sortedSongList = map(lambda triplet: triplet[2], songListToSort)
 	
 	return sortedSongList
@@ -346,18 +434,16 @@ def sortSonglist(songList):
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
-	global serverPort
+	
+	loadConfig()
 	
 	try:
-		print 'Loading song database...'
-		Library.load(iTunesDB)
-		
-		server = HTTPServer(('', serverPort), MBRadio)
-		print 'Starting MBRadio Webserver'
+		server = HTTPServer(('', Config['Port']), MBRadio)
+		Debug.out('Starting MBRadio Webserver')
 		server.serve_forever()
 		
 	except KeyboardInterrupt:
-		print '^C received, shutting down server'
+		Debug.out('^C received, shutting down server')
 		server.socket.close()
 
 if __name__ == '__main__':

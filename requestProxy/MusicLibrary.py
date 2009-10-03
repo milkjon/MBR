@@ -1,22 +1,27 @@
 #----------------------------------------------------------------------------------------------------------------------#
-#  MBRadio
+#	MBRadio
+#	MusicLibrary.py
+#	
+#	Implements the base class for the MusicLibrary.
 #
-#  Base class for the MusicLibrary class
+#	This is to ensure compatibility with any future modifications that might use another source for the music library.
 #
-#  This is to ensure compatibility with any future modifications that might use another source for the user's
-#  music library.
+#	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
 
-import string
-import re
+import string, re, unicodedata
+import Debug
+
+def safeAscii(theString):
+	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
 
 class MusicLibrary:
 	
 	# songs dictionary
 	#	Holds all of the songs in the library
-	#	Format:		keys: 	 <songID> (as integer)
-	#				values:	 dict{ 'artist': (unicode str), 'title': (unicode str), 'album': (unicode str),
-	#						       'genre': (unicode str), 'duration': (integer) }
+	#	Format:		keys: 	 <songID> (string)
+	#				values:	 dict{ 'artist': (ustring), 'title': (ustring), 'album': (ustring), 'genre': (ustring), 
+	#						       'duration': (integer), 'sort-artist': (ustring), 'sort-title': (ustring) }
 	songs = {}
 	
 	# byLetter dictionary
@@ -60,57 +65,66 @@ class MusicLibrary:
 	# Private methods:
 	#------------------------------------------------------------------------------------------------------------------#
 
-	def addSong(self, songID, songTitle, songArtist, songAlbum, songGenre, songDuration):
+	def addSong(self, songData):
 		
-		theArtist = songArtist.strip()
-		theTitle = songTitle.strip()
-		theGenre = songGenre.strip()
-		theAlbum = songAlbum.strip()
+		songID = songData['id']
+		songArtist = unicode(songData['artist']).strip()
+		songTitle = unicode(songData['title']).strip()
 		
-		if not theArtist and not theTitle:
+		if not songArtist and not songTitle:
 			# no good tag data. skip it.
 			return
 		
-		if theArtist:
-			theName = theArtist + ' - ' + theTitle
-		elif theTitle:
-			theName = theTitle
-		theName = theName.encode('ascii','replace').upper()
+		songGenre = unicode(songData['genre']).strip()
+		songAlbum = unicode(songData['album']).strip()
+		songDuration = unicode(songData['duration']).strip()
+		songSortTitle = unicode(songData['sortTitle']).strip()
+		songSortArtist = unicode(songData['sortArtist']).strip()
 		
-		if not theArtist:
-			theArtist = '[Unknown]'
-		if not theTitle:
-			theTitle = '[Unknown]'
+		if songSortArtist:
+			firstLetter = songSortArtist[0]
+		elif songArtist:
+			firstLetter = songArtist[0]
+		elif songSortTitle:
+			firstLetter = songSortTitle[0]
+		elif songTitle:
+			firstLetter = songTitle[0]
+		firstLetter = safeAscii(firstLetter).upper()
 		
-		self.songs[songID] = {'title': theTitle, 'artist': theArtist, 'album': theAlbum, \
-								'genre': theGenre, 'duration': songDuration}
+		if not songArtist:
+			songArtist = u'[Unknown]'
+		if not songTitle:
+			songTitle = u'[Unknown]'
 		
+		self.songs[songID] = {'title': songTitle, 'artist': songArtist, 'album': songAlbum, 'genre': songGenre, 
+								'duration': songDuration, 'sortTitle': songSortTitle, 'sortArtist': songSortArtist }
+								
 		# place song in the "byLetter" dictionary for quick and easy searching later
-		if theName:
-			firstLetter = theName[0].encode('ascii','replace').upper()
-			
+		if firstLetter:
+		
 			if not firstLetter.isalpha():
 				firstLetter = '0'
 			
 			self.byLetter[firstLetter].append(songID)
 		
+		# place song in the "byArtist" dictionary to quick and easy searching later
+		if songArtist:
+			a = safeAscii(songArtist).upper()
+			
+			if not self.byArtist.has_key(a):
+				self.byArtist[a] = []
+				
+			self.byArtist[a].append(songID)
+		
 		# place song in the "byGenre" dictionary for quick and easy searching later
-		if theGenre:
-			g = theGenre.encode('ascii','replace').upper()
+		if songGenre:
+			g = safeAscii(songGenre).upper()
 			
 			if not self.byGenre.has_key(g):
 				self.byGenre[g] = []
 				
 			self.byGenre[g].append(songID)
 			
-		# place song in the "byArtist" dictionary to quick and easy searching later
-		if theArtist:
-			a = theArtist.encode('ascii','replace').upper()
-			
-			if not self.byArtist.has_key(a):
-				self.byArtist[a] = []
-				
-			self.byArtist[a].append(songID)
 		
 	
 	#------------------------------------------------------------------------------------------------------------------#
@@ -152,7 +166,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = searchStr.encode('ascii','replace').upper()
+			searchStr = safeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -189,7 +203,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = searchStr.encode('ascii','replace').upper()
+			searchStr = safeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -226,7 +240,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = searchStr.encode('ascii','replace').upper()
+			searchStr = safeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -239,7 +253,7 @@ class MusicLibrary:
 
 			for songID, songData in self.songs.items():
 				allMatched = 0
-				songTitle = songData['title'].encode('ascii','replace').upper()
+				songTitle = safeAscii(songData['title']).upper()
 				for word in escapedWords:
 					if re.search(word, songTitle):
 						allMatched = 1
@@ -263,7 +277,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = searchStr.encode('ascii','replace').upper()
+			searchStr = safeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -277,7 +291,7 @@ class MusicLibrary:
 			for songID, songData in self.songs.items():
 			
 				artistMatched = 0
-				songArtist = songData['artist'].encode('ascii','replace').upper()
+				songArtist = safeAscii(songData['artist']).upper()
 				for word in escapedWords:
 					if re.search(word, songArtist):
 						artistMatched = 1
@@ -288,7 +302,7 @@ class MusicLibrary:
 					matchedSongs.append(songID)
 				else:
 					titleMatched = 0
-					songTitle = songData['title'].encode('ascii','replace').upper()
+					songTitle = safeAscii(songData['title']).upper()
 					for word in escapedWords:
 						if re.search(word, songTitle):
 							titleMatched = 1
@@ -299,7 +313,7 @@ class MusicLibrary:
 						matchedSongs.append(songID)
 					else:
 						genreMatched = 0
-						songGenre = songData['genre'].encode('ascii','replace').upper()
+						songGenre = safeAscii(songData['genre']).upper()
 						for word in escapedWords:
 							if re.search(word, songGenre):
 								genreMatched = 1

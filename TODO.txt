@@ -1,0 +1,58 @@
+#-----------------------------------------------------------------------------------------------------------------------
+#	MBRadio
+#
+#	TODO List.   Please set your tab width to 4 characters!
+#-----------------------------------------------------------------------------------------------------------------------
+
+#	TASK/STATUS		COMMENTS
+------------------------------------------------------------------------------------------------------------------------
+1.	TO DO			Objc app needs to query the python proxy to get the list of new requests.
+					This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
+	
+	STATUS			Incomplete		
+	
+	
+2.	INVESTIGATE		I am concerned what happens in iTunes if new tracks are added to the library while the person
+					is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
+					with new songs.
+					
+					However, I notice that there is a <key>Persistent ID</key> in the iTunes XML DB.
+					
+					Should we be using this ID instead of what is found in the Track ID field???
+					
+					Is it possible to add the correct track in iTunes (with your little applescript) using this
+					Persistent ID instead of the regular Track ID??
+	
+	RESULT			?
+	
+	
+3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
+					and python.
+					
+					*IDEA* Use one of those .plist files?  Both ObjC and Python can read those.
+					
+					Example configutation data:
+						serverPort
+						maxRequests_UserPerHour
+						maxRequests_ArtistPerHour
+						maxRequests_AlbumPerHour
+					
+					*IDEA* Perhaps the GUI could have a "Config" pane/tab where one could enter this information?
+						The ObjC app would then write these options to .plist config file.
+					
+					The python app could either periodically poll the config file to see if it has changed, or the ObjC
+					app could send some kind of command to the proxy server like an HTTP GET request to
+						http://localhost:15800/reload-config/
+					whenever the config options are changed.
+						
+	RESULT			?
+		
+		
+4.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
+					currently playing?
+					
+					Also, is there a way to pull from iTunes a list of tracks that have recently been played?
+					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
+					this information on the website.
+					
+	RESULT			?

@@ -1,28 +1,34 @@
 #----------------------------------------------------------------------------------------------------------------------#
-#  MBRadio
+#	MBRadio
+#	iTunesLibrary.py
+#	
+#	Implements reading iTunes XML library
 #
-#  iTunes XML DB Implementation
+#	The class iTunesLibrary subclasses MusicLibrary
 #
-#  iTunesLibrary subclasses MusicLibrary
+#	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
+
 
 import MusicLibrary
 import xml.parsers.expat
+import Debug
 
 class iTunesLibrary(MusicLibrary.MusicLibrary):
 		
 	def load(self, path):
 		
-		print "   Parsing iTunes XML..."
+		Debug.out("   Parsing iTunes XML...")
 		p = xml.parsers.expat.ParserCreate()
 		p.StartElementHandler = self.start_element
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
+		p.buffer_text = True
 		p.ParseFile(file(path))
 		
 		MusicLibrary.MusicLibrary.load(self)
 		
-		print "   Loaded " + str(len(self.songs)) + " songs!"
+		Debug.out("   Loaded " + str(len(self.songs)) + " songs!")
 		
 	# Private variables
 	
@@ -33,13 +39,8 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	inData = 0
 	currentKey = ''
 	skipRest = 0
-	songID = ''
-	songTitle = ''
-	songArtist = ''
-	songAlbum = ''
-	songGenre = ''
-	songDuration = ''
-					
+	songData = { }
+		
 	# Private methods:
 	
 	def start_element(self, name, attrs):
@@ -63,8 +64,10 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 			self.inDict = 0
 
 			if self.inTracks and self.inTrack:
-				self.addSong(self.songID, self.songTitle, self.songArtist, self.songAlbum, self.songGenre, self.songDuration)
+				self.addSong(self.songData)
 				self.inTrack = 0
+				self.currentKey = ""
+				songData = { }
 				
 		self.inData = 0
 		
@@ -84,24 +87,31 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				
 				if data == u'Track ID':
 					self.inTrack = 1
-					self.songID = ''
-					self.songTitle = ''
-					self.songArtist = ''
-					self.songAlbum = ''
-					self.songGenre = ''
-					self.songDuration = ''
-		
+					self.songData = {}
+					self.songData['id'] = u''
+					self.songData['title'] = u''
+					self.songData['artist'] = u''
+					self.songData['album'] = u''
+					self.songData['genre'] = u''
+					self.songData['duration'] = u''
+					self.songData['sortTitle'] = u''
+					self.songData['sortArtist'] = u''
+					
 		elif self.inData and self.inTracks and self.inTrack:
 			if self.currentKey == u'Track ID':
-				self.songID = int(data)
+				self.songData['id'] = data
 			elif self.currentKey == u'Name':
-				self.songTitle = data
+				self.songData['title'] = data
 			elif self.currentKey == u'Artist':
-				self.songArtist = data
+				self.songData['artist'] = data
 			elif self.currentKey == u'Album':
-				self.songAlbum = data
+				self.songData['album'] = data
 			elif self.currentKey == u'Genre':
-				self.songGenre = data
+				self.songData['genre'] = data
 			elif self.currentKey == u'Total Time':
-				self.songDuration = int(data)
+				self.songData['duration'] = data
+			elif self.currentKey == u'Sort Name':
+				self.songData['sortTitle'] = data
+			elif self.currentKey == u'Sort Artist':
+				self.songData['sortArtist'] = data
 					
