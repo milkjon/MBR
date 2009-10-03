@@ -9,17 +9,38 @@
 
 import string
 import re
-import cgi
 
 class MusicLibrary:
 	
+	# songs dictionary
+	#	Holds all of the songs in the library
+	#	Format:		keys: 	 <songID> (as integer)
+	#				values:	 dict{ 'artist': (unicode str), 'title': (unicode str), 'album': (unicode str),
+	#						       'genre': (unicode str), 'duration': (integer) }
 	songs = {}
-	byLetter = {}
-	byGenre = {}
-	byArtist = {}
-	songCount = 0
 	
-	# Initialization:
+	# byLetter dictionary
+	#	Holds lists of songIDs organized by first letter (for fast searching)
+	#	Format:		keys:	 '0', 'A', 'B', 'C', .... 'Z'
+	#				values:	 list[(songID1), (songID2),...]
+	byLetter = {}
+	
+	# byGenre dictionary
+	#	Holds lists of songIDs organized by song genre (for fast searching)
+	#	Format:		keys:	 <genre-name>  (as string)
+	#				values:	 list[(songID1), (songID2),...]
+	byGenre = {}
+	
+	# byArtist dictionary
+	#	Holds lists of songIDs organized by song artist (for fast searching)
+	#	Format:		keys:	 <artist-name>  (as string)
+	#				values:	 list[(songID1), (songID2),...]
+	byArtist = {}
+	
+	
+	#------------------------------------------------------------------------------------------------------------------#
+	# Init
+	#------------------------------------------------------------------------------------------------------------------#
 	
 	def __init__(self):
 		
@@ -31,18 +52,9 @@ class MusicLibrary:
 
 		
 	def load(self):
-		# Details must be implemented by the subclass, and then call this function to finish
-		# creating the lookup tables
+		# Details must be implemented by the subclass!!
 		
-		# sort the "song by letter" lists
-		for k in self.byLetter.keys():
-			self.byLetter[k].sort()
-			
-			# Each list item is currently a tuple of the format: ("song artist - title", trackID)
-			# Here we remove the first element of the tuple (the song name)
-			# The song artist/title string is no longer needed once the list has been sorted - just hogs memory
-			self.byLetter[k] = map(lambda pair: pair[1], self.byLetter[k])
-			
+		pass
 			
 	#------------------------------------------------------------------------------------------------------------------#
 	# Private methods:
@@ -53,20 +65,25 @@ class MusicLibrary:
 		theArtist = songArtist.strip()
 		theTitle = songTitle.strip()
 		theGenre = songGenre.strip()
-		if not (theArtist is None and theTitle is None):
-			theName = theArtist + ' - ' + theTitle
-		elif not (theTitle is None):
-			theName = theTitle
-		else:
+		theAlbum = songAlbum.strip()
+		
+		if not theArtist and not theTitle:
 			# no good tag data. skip it.
 			return
 		
+		if theArtist:
+			theName = theArtist + ' - ' + theTitle
+		elif theTitle:
+			theName = theTitle
 		theName = theName.encode('ascii','replace').upper()
 		
-		self.songs[songID] = {'title': theTitle, 'artist': theArtist, \
-								'album': songAlbum.strip(), 'genre': theGenre, 'duration': songDuration}
-								
-		self.songCount = self.songCount + 1
+		if not theArtist:
+			theArtist = '[Unknown]'
+		if not theTitle:
+			theTitle = '[Unknown]'
+		
+		self.songs[songID] = {'title': theTitle, 'artist': theArtist, 'album': theAlbum, \
+								'genre': theGenre, 'duration': songDuration}
 		
 		# place song in the "byLetter" dictionary for quick and easy searching later
 		if theName:
@@ -75,7 +92,7 @@ class MusicLibrary:
 			if not firstLetter.isalpha():
 				firstLetter = '0'
 			
-			self.byLetter[firstLetter].append((theName, songID))
+			self.byLetter[firstLetter].append(songID)
 		
 		# place song in the "byGenre" dictionary for quick and easy searching later
 		if theGenre:
@@ -94,82 +111,28 @@ class MusicLibrary:
 				self.byArtist[a] = []
 				
 			self.byArtist[a].append(songID)
-	
-	def packageSong(self, songID):
-		# packages the song info as an XML string
 		
-		if not self.songs.has_key(songID):
-			return ""
-		
-		song = self.songs[songID]
-		
-		packageStr = '\t<song id=\"' + str(songID) + '\">' + \
-						'<artist>' + self.unicodeToHTML(song['artist']) + '</artist>' + \
-						'<title>' + self.unicodeToHTML(song['title']) + '</title>' + \
-						'<album>' + self.unicodeToHTML(song['album']) + '</album>' + \
-						'<genre>' + self.unicodeToHTML(song['genre']) + '</genre>' + \
-						'<duration>' +str(song['duration']) + '</duration></song>\n'
-
-		return packageStr
-		
-	def packageSonglist(self, songList, numResults, startingFrom):
-		# packages a list of songs in XML for transmission
-		# arugment(songList) should be a list of valid songID's from the library
-		
-		slicedList = self.sliceSonglist(songList, numResults, startingFrom)
-		
-		packageStr = '<songlist count=\"' + str(len(slicedList)) + '\" total=\"' + str(len(songList)) + '\">\n'
-		
-		for t in slicedList:
-			packageStr = packageStr + self.packageSong(t)
-			
-		packageStr = packageStr + '</songlist>'
-		
-		return packageStr
-		
-	def unicodeToHTML(self, theString):
-		return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
-	
-	def makeSongName(self, songID):
-		if not self.songs[songID]['artist'] is None:
-			theName = self.songs[songID]['artist'] + ' - ' + self.songs[songID]['title']
-		else:
-			theName = self.songs[songID]['title']
-			
-		return theName.encode('ascii','replace').upper()
-	
-	def sortSonglist(self, songList):
-		
-		songListToSort = map(lambda songID: (self.makeSongName(songID), songID), songList)
-		songListToSort.sort()
-		sortedSongList = map(lambda pair: pair[1], songListToSort)
-		
-		return sortedSongList
-	
-	def sliceSonglist(self, songList, numResults, startingFrom):
-		# sanitise the numResults & startingFrom
-		if numResults is None or numResults < 0:
-			numResults = 50
-		if startingFrom is None or startingFrom < 0:
-			startingFrom = 0
-		elif startingFrom > len(songList):
-			startingFrom = len(songList)
-		
-		endingAt = startingFrom + numResults
-		if endingAt > len(songList):
-			endingAt = len(songList)
-		
-		# take the appropriate slice:
-		return songList[startingFrom:endingAt]
 	
 	#------------------------------------------------------------------------------------------------------------------#
 	# Public methods:
 	#------------------------------------------------------------------------------------------------------------------#
 	
-	def searchBy_Letter(self, theLetter, numResults, startingFrom):
+	def songExists(self, songID):
+		# verify a song is in the library
+		return self.songs.has_key(songID)
+	#enddef songExists
+	
+	def getSong(self, songID):
+		if self.songs.has_key(songID):
+			return self.songs[songID]
+		else:
+			return None
+	#enddef getSong
+	
+	def searchBy_Letter(self, theLetter):
 		# returns:
-		#	(int)     -1    on error
-		#	(string)        the XML data representing the songlist
+		#	None		on error
+		#	(string)	the XML data representing the songlist
 		
 		# sanitize data:
 		theLetter = theLetter[0].upper()
@@ -177,172 +140,183 @@ class MusicLibrary:
 		if (theLetter.isalpha() or theLetter == '0') and self.byLetter.has_key(theLetter):
 		
 			songList = self.byLetter[theLetter]
-
-			# pass it to get packaged!
-			s = self.packageSonglist(slicedList, numResults, startingFrom)
-			return s
-			
-		return -1
-		
-	def searchBy_Artist(self, searchStr, numResults, startingFrom):
-		# returns:
-		#	(int)     -1    on error
-		#	(string)        the XML data representing the songlist
-		
-		# sanitize data:
-		searchStr = searchStr.encode('ascii','replace').upper()
-		
-		# split into words
-		searchWords = searchStr.split()
-		escapedWords = []
-		for w in searchWords:
-			escapedWords.append(re.escape(w))
-		
-		# find artists where all words match
-		matchedSongs = []
-		allArtists = self.byArtist.keys()
-		
-		for artist in allArtists:
-			allMatched = 0
-			for word in escapedWords:
-				if re.search(word, artist):
-					allMatched = 1
-				else:
-					allMatched = 0
-					break
-					
-			if allMatched:
-				matchedSongs.extend(self.byArtist[artist])
-		
-		# sort the matchedSongs list
-		songList = self.sortSonglist(matchedSongs)
-		
-		# pass it to get packaged!
-		return self.packageSonglist(songList, numResults, startingFrom)
-		
-	def searchBy_Genre(self, searchStr, numResults, startingFrom):
-		# returns:
-		#	(int)     -1    on error
-		#	(string)        the XML data representing the songlist
-		
-		# sanitize data:
-		searchStr = searchStr.encode('ascii','replace').upper()
-		
-		# split into words
-		searchWords = searchStr.split()
-		escapedWords = []
-		for w in searchWords:
-			escapedWords.append(re.escape(w))
-		
-		# find artists where all words match
-		matchedSongs = []
-		allGenres = self.byGenre.keys()
-		
-		for genre in allGenres:
-			allMatched = 0
-			for word in escapedWords:
-				if re.search(word, genre ):
-					allMatched = 1
-				else:
-					allMatched = 0
-					break
-					
-			if allMatched:
-				matchedSongs.extend(self.byGenre[genre])
-		
-		# sort the matchedSongs list
-		songList = self.sortSonglist(matchedSongs)
-		
-		# pass it to get packaged!
-		return self.packageSonglist(songList, numResults, startingFrom)
+			return songList
+		else:
+			return None
+	#enddef searchBy_Letter
 	
-	def searchBy_Title(self, searchStr, numResults, startingFrom):
+	def searchBy_Artist(self, searchStr):
 		# returns:
-		#	(int)     -1    on error
-		#	(string)        the XML data representing the songlist
+		#	None		on error
+		#	(string)	the XML data representing the songlist
 		
-		# sanitize data:
-		searchStr = searchStr.encode('ascii','replace').upper()
-		
-		# split into words
-		searchWords = searchStr.split()
-		escapedWords = []
-		for w in searchWords:
-			escapedWords.append(re.escape(w))
-		
-		# find artists where all words match
-		matchedSongs = []
-
-		for songID, songData in self.songs.items():
-			allMatched = 0
-			songTitle = songData['title'].encode('ascii','replace').upper()
-			for word in escapedWords:
-				if re.search(word, songTitle):
-					allMatched = 1
-				else:
-					allMatched = 0
-					break
-					
-			if allMatched:
-				matchedSongs.append(songID)
-		
-		# sort the matchedSongs list
-		songList = self.sortSonglist(matchedSongs)
-		
-		# pass it to get packaged!
-		return self.packageSonglist(songList, numResults, startingFrom)
-
-	def searchBy_Any(self, searchStr, numResults, startingFrom):
-		# returns:
-		#	(int)     -1    on error
-		#	(string)        the XML data representing the songlist
-		
-		# sanitize data:
-		searchStr = searchStr.encode('ascii','replace').upper()
-		
-		# split into words
-		searchWords = searchStr.split()
-		escapedWords = []
-		for w in searchWords:
-			escapedWords.append(re.escape(w))
-		
-		# find artists where all words match
-		matchedSongs = []
-
-		for songID, songData in self.songs.items():
-			titleMatched = 0
-			artistMatched = 0
-			genreMatched = 0
-			songTitle = songData['title'].encode('ascii','replace').upper()
-			songArtist = songData['artist'].encode('ascii','replace').upper()
-			songGenre = songData['genre'].encode('ascii','replace').upper()
+		try:
+			# sanitize data:
+			searchStr = searchStr.encode('ascii','replace').upper()
 			
-			for word in escapedWords:
-				if re.search(word, songTitle):
-					titleMatched = 1
+			# split into words
+			searchWords = searchStr.split()
+			escapedWords = []
+			for w in searchWords:
+				escapedWords.append(re.escape(w))
+			
+			# find artists where all words match
+			matchedSongs = []
+			allArtists = self.byArtist.keys()
+			
+			for artist in allArtists:
+				allMatched = 0
+				for word in escapedWords:
+					if re.search(word, artist):
+						allMatched = 1
+					else:
+						allMatched = 0
+						break
+						
+				if allMatched:
+					matchedSongs.extend(self.byArtist[artist])
+			
+			return matchedSongs
+
+		except:
+			return None
+	#enddef searchBy_Artist
+	
+	def searchBy_Genre(self, searchStr):
+		# returns:
+		#	None		on error
+		#	(string)	the XML data representing the songlist
+		
+		try:
+			# sanitize data:
+			searchStr = searchStr.encode('ascii','replace').upper()
+			
+			# split into words
+			searchWords = searchStr.split()
+			escapedWords = []
+			for w in searchWords:
+				escapedWords.append(re.escape(w))
+			
+			# find artists where all words match
+			matchedSongs = []
+			allGenres = self.byGenre.keys()
+			
+			for genre in allGenres:
+				allMatched = 0
+				for word in escapedWords:
+					if re.search(word, genre ):
+						allMatched = 1
+					else:
+						allMatched = 0
+						break
+						
+				if allMatched:
+					matchedSongs.extend(self.byGenre[genre])
+			
+			return matchedSongs
+			
+		except:
+			return None
+	#enddef searchBy_Genre
+	
+	def searchBy_Title(self, searchStr):
+		# returns:
+		#	None		on error
+		#	(string)	the XML data representing the songlist
+		
+		try:
+			# sanitize data:
+			searchStr = searchStr.encode('ascii','replace').upper()
+			
+			# split into words
+			searchWords = searchStr.split()
+			escapedWords = []
+			for w in searchWords:
+				escapedWords.append(re.escape(w))
+			
+			# find artists where all words match
+			matchedSongs = []
+
+			for songID, songData in self.songs.items():
+				allMatched = 0
+				songTitle = songData['title'].encode('ascii','replace').upper()
+				for word in escapedWords:
+					if re.search(word, songTitle):
+						allMatched = 1
+					else:
+						allMatched = 0
+						break
+						
+				if allMatched:
+					matchedSongs.append(songID)
+			
+			return matchedSongs
+			
+		except:
+			return None
+	#enddef searchBy_Title
+		
+	def searchBy_Any(self, searchStr):
+		# returns:
+		#	None		on error
+		#	(string)	the XML data representing the songlist
+		
+		try:
+			# sanitize data:
+			searchStr = searchStr.encode('ascii','replace').upper()
+			
+			# split into words
+			searchWords = searchStr.split()
+			escapedWords = []
+			for w in searchWords:
+				escapedWords.append(re.escape(w))
+			
+			# find songs where all words match at least 1 of (artist, title, genre)
+			matchedSongs = []
+
+			for songID, songData in self.songs.items():
+			
+				artistMatched = 0
+				songArtist = songData['artist'].encode('ascii','replace').upper()
+				for word in escapedWords:
+					if re.search(word, songArtist):
+						artistMatched = 1
+					else:
+						artistMatched = 0
+						break
+				if artistMatched:
+					matchedSongs.append(songID)
 				else:
 					titleMatched = 0
-					break
-			for word in escapedWords:
-				if re.search(word, songArtist):
-					artistMatched = 1
-				else:
-					artistMatched = 0
-					break
-			for word in escapedWords:
-				if re.search(word, songGenre):
-					genreMatched = 1
-				else:
-					genreMatched = 0
-					break
-					
-			if titleMatched or artistMatched or genreMatched:
-				matchedSongs.append(songID)
+					songTitle = songData['title'].encode('ascii','replace').upper()
+					for word in escapedWords:
+						if re.search(word, songTitle):
+							titleMatched = 1
+						else:
+							titleMatched = 0
+							break
+					if titleMatched:
+						matchedSongs.append(songID)
+					else:
+						genreMatched = 0
+						songGenre = songData['genre'].encode('ascii','replace').upper()
+						for word in escapedWords:
+							if re.search(word, songGenre):
+								genreMatched = 1
+							else:
+								genreMatched = 0
+								break
+						if genreMatched:
+							matchedSongs.append(songID)
+							
+					#endif titleMatched
+				#endif artistMatched
+				
+			#endfor 
+			
+			return matchedSongs
 		
-		# sort the matchedSongs list
-		songList = self.sortSonglist(matchedSongs)
-		
-		# pass it to get packaged!
-		return self.packageSonglist(songList, numResults, startingFrom)
-		
+		except:
+			return None
+	#enddef searchBy_Any
 	

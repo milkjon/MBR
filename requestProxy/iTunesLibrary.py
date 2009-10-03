@@ -22,7 +22,7 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		
 		MusicLibrary.MusicLibrary.load(self)
 		
-		print "   Loaded " + str(self.songCount) + " songs!"
+		print "   Loaded " + str(len(self.songs)) + " songs!"
 		
 	# Private variables
 	
@@ -76,8 +76,10 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 			if data == u'Playlists':
 				self.skipRest = 1
 				return
-			
-			if self.inTracks:
+			elif data == u'Tracks':
+				self.inTracks = 1
+				return
+			elif self.inTracks:
 				self.currentKey = data
 				
 				if data == u'Track ID':
@@ -88,22 +90,18 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 					self.songAlbum = ''
 					self.songGenre = ''
 					self.songDuration = ''
-					
-			else:
-				if data == u'Tracks':
-					self.inTracks = 1
 		
 		elif self.inData and self.inTracks and self.inTrack:
-				if self.currentKey == u'Track ID':
-					self.songID = int(data)
-				elif self.currentKey == u'Name':
-					self.songTitle = data
-				elif self.currentKey == u'Artist':
-					self.songArtist = data
-				elif self.currentKey == u'Album':
-					self.songAlbum = data
-				elif self.currentKey == u'Genre':
-					self.songGenre = data
-				elif self.currentKey == u'Total Time':
-					self.songDuration = int(data)
+			if self.currentKey == u'Track ID':
+				self.songID = int(data)
+			elif self.currentKey == u'Name':
+				self.songTitle = data
+			elif self.currentKey == u'Artist':
+				self.songArtist = data
+			elif self.currentKey == u'Album':
+				self.songAlbum = data
+			elif self.currentKey == u'Genre':
+				self.songGenre = data
+			elif self.currentKey == u'Total Time':
+				self.songDuration = int(data)
 					
