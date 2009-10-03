@@ -22,7 +22,7 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		
 		MusicLibrary.MusicLibrary.load(self)
 		
-		print "   Loaded " + str(self.trackCount) + " tracks!"
+		print "   Loaded " + str(self.songCount) + " songs!"
 		
 	# Private variables
 	
@@ -33,12 +33,12 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	inData = 0
 	currentKey = ''
 	skipRest = 0
-	trackID = ''
-	trackTitle = ''
-	trackArtist = ''
-	trackAlbum = ''
-	trackGenre = ''
-	trackDuration = ''
+	songID = ''
+	songTitle = ''
+	songArtist = ''
+	songAlbum = ''
+	songGenre = ''
+	songDuration = ''
 					
 	# Private methods:
 	
@@ -63,7 +63,7 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 			self.inDict = 0
 
 			if self.inTracks and self.inTrack:
-				self.addTrack(self.trackID, self.trackTitle, self.trackArtist, self.trackAlbum, self.trackGenre, self.trackDuration)
+				self.addSong(self.songID, self.songTitle, self.songArtist, self.songAlbum, self.songGenre, self.songDuration)
 				self.inTrack = 0
 				
 		self.inData = 0
@@ -82,12 +82,12 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				
 				if data == u'Track ID':
 					self.inTrack = 1
-					self.trackID = ''
-					self.trackTitle = ''
-					self.trackArtist = ''
-					self.trackAlbum = ''
-					self.trackGenre = ''
-					self.trackDuration = ''
+					self.songID = ''
+					self.songTitle = ''
+					self.songArtist = ''
+					self.songAlbum = ''
+					self.songGenre = ''
+					self.songDuration = ''
 					
 			else:
 				if data == u'Tracks':
@@ -95,15 +95,15 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		
 		elif self.inData and self.inTracks and self.inTrack:
 				if self.currentKey == u'Track ID':
-					self.trackID = int(data)
+					self.songID = int(data)
 				elif self.currentKey == u'Name':
-					self.trackTitle = data
+					self.songTitle = data
 				elif self.currentKey == u'Artist':
-					self.trackArtist = data
+					self.songArtist = data
 				elif self.currentKey == u'Album':
-					self.trackAlbum = data
+					self.songAlbum = data
 				elif self.currentKey == u'Genre':
-					self.trackGenre = data
+					self.songGenre = data
 				elif self.currentKey == u'Total Time':
-					self.trackDuration = int(data)
+					self.songDuration = int(data)
 					

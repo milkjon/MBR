@@ -11,9 +11,11 @@ import string
 
 class MusicLibrary:
 	
-	tracks = {}
+	songs = {}
 	byLetter = {}
-	trackCount = 0
+	byGenre = {}
+	byArtist = {}
+	songCount = 0
 	
 	# Initialization:
 	
@@ -38,60 +40,74 @@ class MusicLibrary:
 			
 	# Private methods:
 	
-	def addTrack(self, trackID, trackTitle, trackArtist, trackAlbum, trackGenre, trackDuration):
+	def addSong(self, songID, songTitle, songArtist, songAlbum, songGenre, songDuration):
 		
-		theArtist = trackArtist.strip()
-		theTitle = trackTitle.strip()
+		theArtist = songArtist.strip()
+		theTitle = songTitle.strip()
+		theGenre = songGenre.strip()
 		if theArtist:
 			theName = theArtist + ' - ' + theTitle
 		else:
 			theName = theTitle
 		
-		self.tracks[trackID] = {'title': theTitle, 'artist': theArtist, \
-								'album': trackAlbum.strip(), 'genre': trackGenre.strip(), 'duration': trackDuration}
+		self.songs[songID] = {'title': theTitle, 'artist': theArtist, \
+								'album': songAlbum.strip(), 'genre': theGenre, 'duration': songDuration}
+								
+		self.songCount = self.songCount + 1
 		
-		if theName:
-			firstLetter = theName[0]
-		else:
-			firstLetter = ''
-		
-		if firstLetter:
-			firstLetter = firstLetter.encode('ascii','replace')
-			firstLetter = firstLetter.upper()
+		# place song in the "byLetter" dictionary for quick and easy searching later
+		if theName and theName[0]:
+			firstLetter = theName[0].encode('ascii','replace').upper()
 			
 			if not firstLetter.isalpha():
 				firstLetter = '0'
 			
-			self.byLetter[firstLetter].append((theName, trackID))
+			self.byLetter[firstLetter].append((theName, songID))
 		
-		self.trackCount = self.trackCount + 1
+		# place song in the "byGenre" dictionary for quick and easy searching later
+		if theGenre:
+			g = theGenre.encode('ascii','replace').upper()
+			
+			if not self.byGenre.has_key(g):
+				self.byGenre[g] = []
+				
+			self.byGenre[g].append(songID)
+			
+		# place song in the "byArtist" dictionary to quick and easy searching later
+		if theArtist:
+			a = theArtist.encode('ascii','replace').upper()
+			
+			if not self.byArtist.has_key(a):
+				self.byArtist[a] = []
+				
+			self.byArtist[a].append(songID)
 		
-	def packageTrack(self, trackID):
+	def packageSong(self, songID):
 		
-		# packages the track info as an XML string
+		# packages the song info as an XML string
 		
-		track = tracks[trackID]
+		song = songs[songID]
 		
-		packageStr = '<song><songid>' + trackID + '</songid>' + \
-						'<artist>' + track['artist'] + '</artist>' + \
-						'<title>' + track['title'] + '</title>' + \
-						'<album>' + track['album'] + '</album>' + \
-						'<genre>' + track['genre'] + '</genre>' + \
-						'<duration>' + track['duration'] + '</duration></song>'
+		packageStr = '<song><songid>' + songID + '</songid>' + \
+						'<artist>' + song['artist'] + '</artist>' + \
+						'<title>' + song['title'] + '</title>' + \
+						'<album>' + song['album'] + '</album>' + \
+						'<genre>' + song['genre'] + '</genre>' + \
+						'<duration>' + song['duration'] + '</duration></song>'
 		return packageStr
 		
-	def packageTracklist(self, trackList):
+	def packageSonglist(self, songList):
 	
-		# packages a list of tracks in XML for transmission
+		# packages a list of songs in XML for transmission
 		
-		# arugment(trackList) should be a list of valid trackID's from the library
+		# arugment(songList) should be a list of valid songID's from the library
 		
-		packageStr = '<tracklist count="' + len(packagedTracks) + '">'
+		packageStr = '<songlist count="' + len(packagedSongs) + '">'
 		
-		for t in trackList:
-			packageStr = packageStr + self.packageTrack(t)
+		for t in songList:
+			packageStr = packageStr + self.packageSong(t)
 			
-		packageStr = packageStr + '</tracklist>'
+		packageStr = packageStr + '</songlist>'
 		
 		return packageStr
 		
@@ -102,7 +118,7 @@ class MusicLibrary:
 	def searchBy_Letter(self, theLetter, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
-		#	(string)        the XML data representing the tracklist
+		#	(string)        the XML data representing the songlist
 		
 		# oh, just in case:
 		theLetter = theLetter[0]
@@ -118,28 +134,28 @@ class MusicLibrary:
 	def searchBy_Artist(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
-		#	(string)        the XML data representing the tracklist
+		#	(string)        the XML data representing the songlist
 		
 		pass
 		
 	def searchBy_Title(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
-		#	(string)        the XML data representing the tracklist
+		#	(string)        the XML data representing the songlist
 		
 		pass
 		
 	def searchBy_Genre(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
-		#	(string)        the XML data representing the tracklist
+		#	(string)        the XML data representing the songlist
 		
 		pass
 		
 	def searchBy_Any(self, searchStr, numResults, startingFrom):
 		# returns:
 		#	(int)     -1    on error
-		#	(string)        the XML data representing the tracklist
+		#	(string)        the XML data representing the songlist
 		
 		pass
 		
