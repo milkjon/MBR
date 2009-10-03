@@ -57,28 +57,49 @@ class MBRadio(BaseHTTPRequestHandler):
 					
 					# parse the query string 
 					args = urlparse.parse_qs(queryStr);
-					print args
-					
-					if args['by'] and args['for']:
+
+					if args.has_key('by') and args.has_key('for'):
 						
-						searchBy = args['by'][0]
+						searchBy = args['by'][0].lower()
 						searchFor = args['for'][0]
 						
+						if args.has_key('results'):
+							results = int(args['results'][0])
+						else:
+							results = 100
+							
+						if args.has_key('starting'):
+							starting = int(args['starting'][0])
+						else:
+							starting = 0
 						
-						# Execute the search on the iTunes Library!
+						# Execute the search on the music Library!
 						
-						# FINISH ME!
-						
-						resultSet = ''
-						
-						
+						if searchBy == "letter":
+							resultSet = DB.searchBy_Letter(searchFor, results, starting)
+						elif searchBy == "artist":
+							resultSet = DB.searchBy_Artist(searchFor, results, starting)
+						elif searchBy == "genre":
+							resultSet = DB.searchBy_Genre(searchFor, results, starting)
+						elif searchBy == "title":
+							resultSet = DB.searchBy_Title(searchFor, results, starting)
+						elif searchBy == "any":
+							resultSet = DB.searchBy_Any(searchFor, results, starting)
+						else:
+							self.send_response(500)
+							self.send_header('Content-type', 'text/html')
+							self.end_headers()
+							self.wfile.write("Unknown search parameter " + searchBy)
+							return
 						
 						# Return the results as an gzipped XML file
-						
-						compressedResults = zlib.compress(resultSet)
+
+						compressedResults = resultSet
+						#print compressedResults
+						#compressedResults = zlib.compress(resultSet)
 						
 						self.send_response(200)
-						self.send_header('Content-type', 'text/xml')
+						self.send_header('Content-type', 'text/plain')
 						self.end_headers()
 						self.wfile.write(compressedResults)
 						return
