@@ -40,7 +40,7 @@ Hosts = {}
 #	Contents:
 #		list[ dict{ 'id': (requestID),
 #					'info': dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP),
-#									'name': (requestor), 'dedication': (dedication info) }
+#									'requestedBy': (requestor), 'dedication': (dedication info) }
 #		          }
 #		    ]
 
@@ -56,7 +56,7 @@ NewRequests = []
 #  Load configuration
 #----------------------------------------------------------------------------------------------------------------------#
 
-def loadConfig():
+def LoadConfig():
 	global Library, Config
 	
 	# which Library DB to use?  Currently the only acceptable option is "iTunes"
@@ -86,7 +86,7 @@ def loadConfig():
 		Debug.out('Loading song database...')
 		Library.load(Config['iTunesDB'])
 	
-#enddef loadConfig
+#enddef LoadConfig
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  BaseHTTPServer implementation
@@ -126,12 +126,13 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		songs in XML format.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE			DESCRIPTION
+		#			NAME		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			for 		string			string literal to search for
-		#			by			option: 		one of [letter|artist|title|genre|any]
-		#			results 	integer 		Number of results to return
-		#			starting	integer			For continuation of search results, starting at this number result
+		#			for 		string		Y		string literal to search for
+		#			by			option: 	Y		one of [letter|artist|title|genre|any]
+		#			results 	integer 	N		Number of results to return  (defaults to 100)
+		#			starting	integer		N		For continuation of search results, starting at this number result
+		#												(defaults to 0)
 		#		
 		#	/new-requests/
 		#
@@ -141,9 +142,10 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Any requests that do not originate from the localhost are ignored.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE			DESCRIPTION
+		#			NAME		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			clear 		string			one of [yes|no]  defaults to yes
+		#			clear 		string		N		one of [yes|no]  (defaults to 'yes')
+		#			order		string		N		one of [newest|oldest]  (defaults to 'newest')
 		#
 		#	/requests/
 		#
@@ -151,9 +153,9 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Requests are always returned in descending order by the time the request was made.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE			DESCRIPTION
+		#			NAME		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			results 	integer			Number of results to return
+		#			results 	integer		Y		Number of results to return
 		#
 		#	/time/
 		#
@@ -163,7 +165,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#
 		#---------------------------------------------------------------------------------------------------------------
 		
-		try:
+		#try:
 			# split the request into the "file name" and the "query string"
 			fileStr, sepChar, queryStr = self.path.partition('?')
 			
@@ -173,7 +175,7 @@ class MBRadio(BaseHTTPRequestHandler):
 				args = urlparse.parse_qs(queryStr);
 				
 				if not args:
-					self.sendError(500, 'Invalid search parameters')
+					self.sendError(500, 'Incomple search parameters')
 					return
 
 				if args.has_key('by') and args.has_key('for') and args['by'] and args['for']:
@@ -212,10 +214,10 @@ class MBRadio(BaseHTTPRequestHandler):
 						return				
 					
 					# sort the results
-					sortedResults = sortSonglist(resultSet)
+					sortedResults = SortSonglist(resultSet)
 					
 					# packages the results as XML
-					packagedResults = packageSonglist(sortedResults, numResults, startingFrom)
+					packagedResults = PackageSonglist(sortedResults, numResults, startingFrom)
 					
 					# gzip the results XML
 					compressedResults = packagedResults
@@ -223,7 +225,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					
 					# send it back
 					self.send_response(200)
-					self.send_header('Content-type', 'text/plain')
+					self.send_header('Content-type', 'text/xml')
 					self.end_headers()
 					self.wfile.write(compressedResults)
 					return
@@ -232,25 +234,108 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			
 			elif fileStr == '/new-requests/':
+				global NewRequests
 				
+				# parse the query string 
+				args = urlparse.parse_qs(queryStr);
 				
+				clear = 'yes'
+				order = 'newest'
+				if not args is None:
+					if args.has_key('clear') and args['clear']:
+						if args['clear'][0] == 'yes' or args['clear'][0] == 'no':
+							clear = args['clear'][0]
+					if args.has_key('order') and args['order']: 
+						if args['order'][0] == 'newest' or args['order'][0] == 'oldest':
+							order = args['order'][0]
+				
+				orderedRequests = list(NewRequests)
+				if order == 'newest':
+					orderedRequests.reverse()
+
+				# package new requests as XML
+				packageStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<requestlist count=\"' + str(len(orderedRequests)) + '\">\n'
+	
+				for requestID in orderedRequests:
+					packageStr = packageStr + PackageRequest(requestID)
+					
+				packageStr = packageStr + '</requestlist>'
+				
+				# send it back
+				self.send_response(200)
+				self.send_header('Content-type', 'text/xml')
+				self.end_headers()
+				self.wfile.write(packageStr)
+				
+				# clear the list?
+				if clear == 'yes':
+					NewRequests = []
 				
 				return
+				
 			#endif fileStr == '/new-requests/':
 			
 			
 			elif fileStr == '/requests/':
-			
+				
+				# parse the query string 
+				args = urlparse.parse_qs(queryStr);
+				
+				if args is None or not args.has_key('results') or not args['results']:
+					self.sendError(500, 'Incomple query parameters')
+					return
+
+				numResults = int(args['results'][0])
+				if numResults <= 0:
+					numResults = 10
+				
+				# sort requests by timestamp desc:
+				requestListToSort = map(lambda reqDict: (reqDict['info']['time'], reqDict['id']), Requests)
+				requestListToSort.sort()
+				requestListToSort.reverse()
+				sortedRequestList = map(lambda pair: pair[1], requestListToSort)
+				
+				# take the slice:
+				if numResults > len(sortedRequestList):
+					numResults = len(sortedRequestList)
+				
+				slicedRequestList = sortedRequestList[0:numResults]
+				
+				# package the requests as XML
+				packageStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<requestlist count=\"' + str(len(slicedRequestList)) + '\">\n'
+	
+				for requestID in slicedRequestList:
+					packageStr = packageStr + PackageRequest(requestID)
+					
+				packageStr = packageStr + '</requestlist>'
+				
+				# send it back
+				self.send_response(200)
+				self.send_header('Content-type', 'text/xml')
+				self.end_headers()
+				self.wfile.write(packageStr)
 				return
+				
 			#endif fileStr == '/requests/':
 			
+			elif fileStr == '/time/':
+				
+				self.send_response(200)
+				self.send_header('Content-type', 'text/xml')
+				self.end_headers()
+				self.wfile.write('<time>' + time.ctime() + '</time>')
+				return
+				
+			#endif fileStr == '/time/':
 			
 			# error fall-through
 			self.sendError(500, 'Server error')
 			return
 
-		except:
-			pass
+		#except:
+		#	pass
 			
 	#enddef do_GET
 	
@@ -286,6 +371,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		self.end_headers()
 		self.wfile.write(response)
 		return
+	#enddef sendRequestError
+	
 	
 	def do_POST(self):
 		
@@ -303,11 +390,11 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			----------------------------------------------------------------------------------------------------
 		#			songID 		integer			the iTunes track id
 		#			host		string 			IP address of requester
-		#			name 		string 			Name of the person making the request
+		#			requestedBy string 			Name of the person making the request
 		#			dedication	string			A short message (dedication) for the request
 		#
 		#		Returns XML of the form:
-		#			<request><application><apptype>MBRadio Server</apptype><version>1.0</version></application>
+		#			<request><application><apptype>MBRadio</apptype><version>1.0</version></application>
 		#				<status><code></code><message></message><requestID></requestID></status>
 		#				<song id=""><artist></artist><title></title><album></album><genre></genre><duration></duration></song>
 		#			</request>
@@ -346,8 +433,8 @@ class MBRadio(BaseHTTPRequestHandler):
 					songID = form['songID'][0]
 					hostIP = form['host'][0]
 					
-					if form.has_key('name') and form['name']:
-						requestedBy = form['name'][0]
+					if form.has_key('requestedBy') and form['requestedBy']:
+						requestedBy = form['requestedBy'][0]
 					else:
 						requestedBy = ''
 						
@@ -373,7 +460,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					
 					curTime = time.time()
 					oneHourAgo = curTime - (60 * 60)  # 1 hour = 60 minutes = 60 * 60 seconds
-					tenMinAgo = curTime - (10 * 60)
+					tenMinAgo = curTime - (10 * 60)   # 10 mins = 10 * 60 seconds
 					# check if the host request limit has been met:
 					requestsInLastHour = 0
 					requestedSongInLast10Minutes = 0
@@ -421,7 +508,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					# ok, all checks passed
 					requestCount = requestCount + 1
 					requestID = requestCount
-					requestTime = time.time()
+					requestTime = long(time.time())
 					
 					# update Hosts list
 					Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
@@ -429,17 +516,16 @@ class MBRadio(BaseHTTPRequestHandler):
 					# add request to Requests list
 					Requests.append( { 'id': requestID, \
 										'info': {	'songID': songID, 'time': requestTime, 'host': hostIP, \
-													'name': requestedBy, 'dedication': dedication } } )
+													'requestedBy': requestedBy, 'dedication': dedication } } )
 
 					# add to NewRequests list
 					NewRequests.append( requestID )
 
 					# send a response back in XML
 					response = '''<?xml version="1.0" encoding="UTF-8"?>
-								<request>
-									<application><apptype>MBRadio Server</apptype><version>1.0</version></application>
-									<status><code>200</code><message>Request Received</message>
-										<requestID>''' + str(requestID) + '</requestID></status>' + packageSong(songID) + '</request>'
+								<request><application><apptype>MBRadio</apptype><version>1.0</version></application>
+								<status><code>200</code><message>Request Received</message>
+								<requestID>''' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
 
 					self.send_response(200)
 					self.send_header('Content-type', 'text/xml')
@@ -466,7 +552,7 @@ class MBRadio(BaseHTTPRequestHandler):
 #----------------------------------------------------------------------------------------------------------------------#
 #  Utility functions
 #----------------------------------------------------------------------------------------------------------------------#
-def packageSonglist(songList, numResults, startingFrom):
+def PackageSonglist(songList, numResults, startingFrom):
 	# packages a list of songs in XML for transmission
 	# arugment(songList) should be a list of valid songID's from the library
 	
@@ -490,15 +576,15 @@ def packageSonglist(songList, numResults, startingFrom):
 					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(endingAt-1) + '\"' + '>\n'
 	
 	for song in slicedList:
-		packageStr = packageStr + packageSong(song)
+		packageStr = packageStr + PackageSong(song)
 		
 	packageStr = packageStr + '</songlist>'
 	
 	return packageStr
 	
-#enddef packageSonglist
-	
-def packageSong(songID):
+#enddef PackageSonglist
+
+def PackageSong(songID):
 	# packages the song info as an XML string
 	
 	song = Library.getSong(songID)
@@ -506,24 +592,54 @@ def packageSong(songID):
 		return ""
 	
 	packageStr = '\t<song id=\"' + str(songID) + '\">' + \
-					'<artist>' + safeXML(song['artist']) + '</artist>' + \
-					'<title>' + safeXML(song['title']) + '</title>' + \
-					'<album>' + safeXML(song['album']) + '</album>' + \
-					'<genre>' + safeXML(song['genre']) + '</genre>' + \
+					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
+					'<title>' + SafeXML(song['title']) + '</title>' + \
+					'<album>' + SafeXML(song['album']) + '</album>' + \
+					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
 					'<duration>' +str(song['duration']) + '</duration></song>\n'
 
 	return packageStr
 	
-#enddef packageSong
+#enddef PackageSong
 
-def safeXML(theString):
+def PackageRequest(requestID):
+	# packages the request info as an XML string
+	
+	request = LookupRequest(requestID)
+	if request is None:
+		return ""
+		
+	packageStr = '\t<request id=\"' + str(requestID) + '\">' + \
+					'<time>' + str(request['info']['time']) + '</time>' + \
+					'<host>' + SafeXML(request['info']['host']) + '</host>' + \
+					'<requestedby>' + SafeXML(request['info']['requestedBy']) + '</requestedby>' + \
+					'<dedication>' + SafeXML(request['info']['dedication']) + '</dedication>' + \
+					PackageSong(request['info']['songID']) + '</request>\n'
+
+	return packageStr
+	
+#enddef PackageRequest
+
+def LookupRequest(requestID):
+	
+	found = filter( lambda reqDict: reqDict['id'] == requestID, Requests)
+	
+	if found:
+		return found[0]
+	else:
+		return None
+	
+#enddef LookupRequest
+
+def SafeXML(theString):
 	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
-#enddef safeXML
+#enddef SafeXML
 
-def safeAscii(theString):
+def SafeAscii(theString):
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
+#enddef SafeAscii
 
-def makeSortTuple(songID):
+def MakeSortingTuple(songID):
 	song = Library.getSong(songID)
 	if song is None:
 		return (None, None, None)
@@ -537,7 +653,7 @@ def makeSortTuple(songID):
 	else:
 		f1 = None
 		
-	f1 = safeAscii(f1).upper()
+	f1 = SafeAscii(f1).upper()
 	
 	if song.has_key('sortTitle') and song['sortTitle']:
 		f2 = song['sortTitle']
@@ -549,26 +665,26 @@ def makeSortTuple(songID):
 	if f1 is None or f2 is None:
 		return (None, None, None)
 	
-	f2 = safeAscii(f2).upper()
+	f2 = SafeAscii(f2).upper()
 	
 	return (f1, f2, songID)
 
 #enddef makeSongName
 
-def sortSonglist(songList):
-	songListToSort = map(lambda songID: makeSortTuple(songID), songList)
+def SortSonglist(songList):
+	songListToSort = map(lambda songID: MakeSortingTuple(songID), songList)
 	songListToSort.sort()
 	sortedSongList = map(lambda triplet: triplet[2], songListToSort)
 	
 	return sortedSongList
-#enddef sortSonglist
+#enddef SortSonglist
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
 	
-	loadConfig()
+	LoadConfig()
 	
 	try:
 		server = HTTPServer(('', Config['Port']), MBRadio)
