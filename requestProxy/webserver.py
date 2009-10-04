@@ -133,7 +133,14 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			results 	integer 	N		Number of results to return  (defaults to 100)
 		#			starting	integer		N		For continuation of search results, starting at this number result
 		#												(defaults to 0)
-		#		
+		#		Returns XML of the form:
+		#			<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
+		#				...
+		#			</songlist>
+		#
 		#	/new-requests/
 		#
 		#		This interface is only used internally by the request-list display app on the DJ's personal
@@ -147,6 +154,17 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			clear 		string		N		one of [yes|no]  (defaults to 'yes')
 		#			order		string		N		one of [newest|oldest]  (defaults to 'newest')
 		#
+		#		Returns XML of the form:
+		#			<requestlist count="(count)">
+		#				<request id="(requestID)">
+		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#					<song id="(songID)">
+		#						<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#					</song>
+		#				</request>
+		#				...
+		#			</requestlist>
+		#
 		#	/requests/
 		#
 		#		This interface is used by the webserver to get a list of recent requests to display on the website.
@@ -157,11 +175,25 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			----------------------------------------------------------------------------------------------------
 		#			results 	integer		Y		Number of results to return
 		#
+		#		Returns XML of the form:
+		#			<requestlist count="(count)">
+		#				<request id="(requestID)">
+		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#					<song id="(songID)">
+		#						<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#					</song>
+		#				</request>
+		#				...
+		#			</requestlist>
+		#
 		#	/time/
 		#
 		#		Returns the local time on the DJ's computer. Needed for certain things on the server.
 		#
 		#		Query string parameters: (none)
+		#
+		#		Returns XML of the form:
+		#			<time>(current local time)</time>
 		#
 		#---------------------------------------------------------------------------------------------------------------
 		
@@ -387,17 +419,24 @@ class MBRadio(BaseHTTPRequestHandler):
 		#
 		#	/req/
 		#		Form data parameters:
-		#			NAME		TYPE			DESCRIPTION
+		#			NAME			TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			songID 		integer			the iTunes track id
-		#			host		string 			IP address of requester
-		#			requestedBy string 			Name of the person making the request
-		#			dedication	string			A short message (dedication) for the request
+		#			songID 			integer		Y		the iTunes track id
+		#			host			string 		Y		IP address of requester
+		#			requestedBy		string 		N		Name of the person making the request
+		#			dedication		string		N		A short message (dedication) for the request
 		#
 		#		Returns XML of the form:
-		#			<request><application><apptype>MBRadio</apptype><version>1.0</version></application>
-		#				<status><code></code><message></message><requestID></requestID></status>
-		#				<song id=""><artist></artist><title></title><album></album><genre></genre><duration></duration></song>
+		#			<request>
+		#				<application>
+		#					<apptype>MBRadio</apptype><version>1.0</version>
+		#				</application>
+		#				<status>
+		#					<code>(status code)</code><message>(status code desc.)</message><requestID>(new request ID)</requestID>
+		#				</status>
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
 		#			</request>
 		#
 		#		Status codes:
