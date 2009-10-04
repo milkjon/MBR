@@ -12,7 +12,7 @@
 import string, re, unicodedata
 import Debug
 
-def safeAscii(theString):
+def SafeAscii(theString):
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
 
 class MusicLibrary:
@@ -89,7 +89,7 @@ class MusicLibrary:
 			firstLetter = songSortTitle[0]
 		elif songTitle:
 			firstLetter = songTitle[0]
-		firstLetter = safeAscii(firstLetter).upper()
+		firstLetter = SafeAscii(firstLetter).upper()
 		
 		if not songArtist:
 			songArtist = u'[Unknown]'
@@ -109,7 +109,7 @@ class MusicLibrary:
 		
 		# place song in the "byArtist" dictionary to quick and easy searching later
 		if songArtist:
-			a = safeAscii(songArtist).upper()
+			a = SafeAscii(songArtist).upper()
 			
 			if not self.byArtist.has_key(a):
 				self.byArtist[a] = []
@@ -118,7 +118,7 @@ class MusicLibrary:
 		
 		# place song in the "byGenre" dictionary for quick and easy searching later
 		if songGenre:
-			g = safeAscii(songGenre).upper()
+			g = SafeAscii(songGenre).upper()
 			
 			if not self.byGenre.has_key(g):
 				self.byGenre[g] = []
@@ -166,7 +166,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = safeAscii(searchStr).upper()
+			searchStr = SafeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -203,7 +203,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = safeAscii(searchStr).upper()
+			searchStr = SafeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -240,7 +240,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = safeAscii(searchStr).upper()
+			searchStr = SafeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -253,7 +253,7 @@ class MusicLibrary:
 
 			for songID, songData in self.songs.items():
 				allMatched = 0
-				songTitle = safeAscii(songData['title']).upper()
+				songTitle = SafeAscii(songData['title']).upper()
 				for word in escapedWords:
 					if re.search(word, songTitle):
 						allMatched = 1
@@ -277,7 +277,7 @@ class MusicLibrary:
 		
 		try:
 			# sanitize data:
-			searchStr = safeAscii(searchStr).upper()
+			searchStr = SafeAscii(searchStr).upper()
 			
 			# split into words
 			searchWords = searchStr.split()
@@ -291,7 +291,7 @@ class MusicLibrary:
 			for songID, songData in self.songs.items():
 			
 				artistMatched = 0
-				songArtist = safeAscii(songData['artist']).upper()
+				songArtist = SafeAscii(songData['artist']).upper()
 				for word in escapedWords:
 					if re.search(word, songArtist):
 						artistMatched = 1
@@ -302,7 +302,7 @@ class MusicLibrary:
 					matchedSongs.append(songID)
 				else:
 					titleMatched = 0
-					songTitle = safeAscii(songData['title']).upper()
+					songTitle = SafeAscii(songData['title']).upper()
 					for word in escapedWords:
 						if re.search(word, songTitle):
 							titleMatched = 1
@@ -313,7 +313,7 @@ class MusicLibrary:
 						matchedSongs.append(songID)
 					else:
 						genreMatched = 0
-						songGenre = safeAscii(songData['genre']).upper()
+						songGenre = SafeAscii(songData['genre']).upper()
 						for word in escapedWords:
 							if re.search(word, songGenre):
 								genreMatched = 1

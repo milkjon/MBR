@@ -126,13 +126,13 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		songs in XML format.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE		REQ?	DESCRIPTION
+		#			PARAM		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			for 		string		Y		string literal to search for
-		#			by			option: 	Y		one of [letter|artist|title|genre|any]
-		#			results 	integer 	N		Number of results to return  (defaults to 100)
-		#			starting	integer		N		For continuation of search results, starting at this number result
-		#												(defaults to 0)
+		#			for=X		string		Y		X is string literal to search for
+		#			by=X		string	 	Y		X must be one of [letter|artist|title|genre|any]
+		#			results=X	integer 	N		X is the number of results to return  (defaults to 100)
+		#			starting=X	integer		N		For continuation of search results, return songs starting at
+		#												result #X (defaults to 0)
 		#		Returns XML of the form:
 		#			<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
 		#				<song id="(songID)">
@@ -149,10 +149,10 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Any requests that do not originate from the localhost are ignored.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE		REQ?	DESCRIPTION
+		#			PARAM		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			clear 		string		N		one of [yes|no]  (defaults to 'yes')
-		#			order		string		N		one of [newest|oldest]  (defaults to 'newest')
+		#			clear=X		string		N		X must be one of [yes|no]  (defaults to 'yes')
+		#			order=X		string		N		X must be one of [newest|oldest]  (defaults to 'newest')
 		#
 		#		Returns XML of the form:
 		#			<requestlist count="(count)">
@@ -171,11 +171,12 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Requests are always returned in descending order by the time the request was made.
 		#
 		#		Query string parameters:
-		#			NAME		TYPE		REQ?	DESCRIPTION
+		#			PARAM		TYPE			REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			results 	integer		Y		Number of results to return
+		#			results=X	'all'|integer	Y		if X='all', returns all requests. Otherwise returns the most
+		#													recent X requests made to the server.
 		#
-		#		Returns XML of the form:
+		#		Returns XML of the form: 
 		#			<requestlist count="(count)">
 		#				<request id="(requestID)">
 		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
@@ -243,7 +244,7 @@ class MBRadio(BaseHTTPRequestHandler):
 						
 					if resultSet is None:
 						self.sendError(500, 'Search error occurred')
-						return				
+						return
 					
 					# sort the results
 					sortedResults = SortSonglist(resultSet)
@@ -317,21 +318,23 @@ class MBRadio(BaseHTTPRequestHandler):
 				if args is None or not args.has_key('results') or not args['results']:
 					self.sendError(500, 'Incomple query parameters')
 					return
-
-				numResults = int(args['results'][0])
-				if numResults <= 0:
-					numResults = 10
 				
 				# sort requests by timestamp desc:
 				requestListToSort = map(lambda reqDict: (reqDict['info']['time'], reqDict['id']), Requests)
 				requestListToSort.sort()
 				requestListToSort.reverse()
 				sortedRequestList = map(lambda pair: pair[1], requestListToSort)
+					
+				if args['results'][0] == 'all':
+					numResults = len(sortedRequestList)
+				else:
+					numResults = int(args['results'][0])
+					if numResults <= 0:
+						numResults = 10
+					if numResults > len(sortedRequestList):
+						numResults = len(sortedRequestList)
 				
 				# take the slice:
-				if numResults > len(sortedRequestList):
-					numResults = len(sortedRequestList)
-				
 				slicedRequestList = sortedRequestList[0:numResults]
 				
 				# package the requests as XML
