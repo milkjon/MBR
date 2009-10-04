@@ -330,6 +330,7 @@ class MBRadio(BaseHTTPRequestHandler):
 				
 			#endif fileStr == '/time/':
 			
+			
 			# error fall-through
 			self.sendError(500, 'Server error')
 			return
@@ -558,7 +559,7 @@ def PackageSonglist(songList, numResults, startingFrom):
 	
 	# sanitise the numResults & startingFrom
 	if numResults is None or numResults < 0:
-		numResults = 50
+		numResults = 100
 	if startingFrom is None or startingFrom < 0:
 		startingFrom = 0
 	elif startingFrom > len(songList):

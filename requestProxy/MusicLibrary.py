@@ -145,8 +145,8 @@ class MusicLibrary:
 	
 	def searchBy_Letter(self, theLetter):
 		# returns:
-		#	None		on error
-		#	(string)	the XML data representing the songlist
+		#	None	on error
+		#	list	list of songIDs matching the search
 		
 		# sanitize data:
 		theLetter = theLetter[0].upper()
@@ -161,8 +161,8 @@ class MusicLibrary:
 	
 	def searchBy_Artist(self, searchStr):
 		# returns:
-		#	None		on error
-		#	(string)	the XML data representing the songlist
+		#	None	on error
+		#	list	list of songIDs matching the search
 		
 		try:
 			# sanitize data:
@@ -198,8 +198,8 @@ class MusicLibrary:
 	
 	def searchBy_Genre(self, searchStr):
 		# returns:
-		#	None		on error
-		#	(string)	the XML data representing the songlist
+		#	None	on error
+		#	list	list of songIDs matching the search
 		
 		try:
 			# sanitize data:
@@ -235,8 +235,8 @@ class MusicLibrary:
 	
 	def searchBy_Title(self, searchStr):
 		# returns:
-		#	None		on error
-		#	(string)	the XML data representing the songlist
+		#	None	on error
+		#	list	list of songIDs matching the search
 		
 		try:
 			# sanitize data:
@@ -272,8 +272,8 @@ class MusicLibrary:
 		
 	def searchBy_Any(self, searchStr):
 		# returns:
-		#	None		on error
-		#	(string)	the XML data representing the songlist
+		#	None	on error
+		#	list	list of songIDs matching the search
 		
 		try:
 			# sanitize data:
