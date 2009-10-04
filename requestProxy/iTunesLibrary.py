@@ -9,9 +9,11 @@
 #	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
 
-
-import MusicLibrary
 import xml.parsers.expat
+import time
+
+# local imports
+import MusicLibrary
 import Debug
 
 class iTunesLibrary(MusicLibrary.MusicLibrary):
@@ -19,18 +21,31 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	def load(self, path):
 		
 		Debug.out("   Parsing iTunes XML...")
+		
+		t1 = time.time()
+		
 		p = xml.parsers.expat.ParserCreate()
 		p.StartElementHandler = self.start_element
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
+		
+		# important! if you don't set buffer_text to true, the CharacterDataHandler does not always return the
+		# full text inside of a <tag></tag> pair! this will cause some data to be loaded incompletely unless
+		# the code implements its own buffering!
 		p.buffer_text = True
+		
 		p.ParseFile(file(path))
 		
-		MusicLibrary.MusicLibrary.load(self)
+		t2 = time.time()
 		
-		Debug.out("   Loaded " + str(len(self.songs)) + " songs!")
-		
-	# Private variables
+		Debug.out("   Loaded", len(self.songs), "songs!")
+		Debug.out("   Parsing took", round(t2 - t1,4), "seconds")
+	#enddef load()
+	
+	
+	#------------------------------------------------------------------------------------------------------------------#
+	# Private variables (used by the XML parser)
+	#------------------------------------------------------------------------------------------------------------------#
 	
 	inDict = 0
 	inKey = 0
@@ -41,7 +56,9 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	skipRest = 0
 	songData = { }
 		
+	#------------------------------------------------------------------------------------------------------------------#
 	# Private methods:
+	#------------------------------------------------------------------------------------------------------------------#
 	
 	def start_element(self, name, attrs):
 		if self.skipRest:
@@ -53,7 +70,8 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 			self.inDict = 1
 		elif name == u'string' or name == u'integer':
 			self.inData = 1
-
+	#enddef start_element()
+	
 	def end_element(self, name):
 		if self.skipRest:
 			return
@@ -70,7 +88,8 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				songData = { }
 				
 		self.inData = 0
-		
+	#enddef end_element()
+	
 	def char_data(self, data):
 		if self.skipRest:
 			return
@@ -87,15 +106,10 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				
 				if data == u'Track ID':
 					self.inTrack = 1
-					self.songData = {}
-					self.songData['id'] = u''
-					self.songData['title'] = u''
-					self.songData['artist'] = u''
-					self.songData['album'] = u''
-					self.songData['genre'] = u''
-					self.songData['duration'] = u''
-					self.songData['sortTitle'] = u''
-					self.songData['sortArtist'] = u''
+					self.songData.update({'id':u'', 'title':u'', 'artist':u'', 'album':u'', 'genre':u'',
+											'duration':u'', 'sortTitle':u'', 'sortArtist':u''})
+					
+		#endif self.inKey
 					
 		elif self.inData and self.inTracks and self.inTrack:
 			if self.currentKey == u'Track ID':
@@ -114,4 +128,8 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				self.songData['sortTitle'] = data
 			elif self.currentKey == u'Sort Artist':
 				self.songData['sortArtist'] = data
-					
+		#endif self.inData and self.inTracks and self.inTrack
+		
+	#enddef char_data()
+
+#endclass iTunesLibrary

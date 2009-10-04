@@ -8,7 +8,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import string, cgi, time, urlparse, zlib, os.path, unicodedata, datetime, time
+import string, cgi, time, urlparse, zlib, os.path, unicodedata, datetime, time, gc
 from os import curdir, sep
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -126,13 +126,24 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		songs in XML format.
 		#
 		#		Query string parameters:
-		#			PARAM		TYPE		REQ?	DESCRIPTION
+		#			PARAM		TYPE	REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			for=X		string		Y		X is string literal to search for
-		#			by=X		string	 	Y		X must be one of [letter|artist|title|genre|any]
-		#			results=X	integer 	N		X is the number of results to return  (defaults to 100)
-		#			starting=X	integer		N		For continuation of search results, return songs starting at
-		#												result #X (defaults to 0)
+		#			for=		string	 Y		a string literal to search for
+		#			by=			string	 Y		must be one of [letter|artist|title|genre|any]
+		#			sort=		string	 N		Must be a list in the format "field1-direction,field2-direction..."
+		#
+		#										field is one of (artist|title|album|genre)
+		#										direction is one of (asc|desc) - if unspecified, defaults to asc
+		#
+		#										If sort=="", defaults to "artist-asc,title-asc"
+		#										If sort=="artist-[dir]", defaults to "artist-[dir],title-asc"
+		#										If sort=="album-[dir]", defaults to "album-[dir],title-asc"
+		#										If sort=="genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#
+		#			results=	integer	 N		the number of results to return  (defaults to 100)
+		#			starting=	integer	 N		For continuation of search results, return songs starting at
+		#										result #X (defaults to 0)
+		#
 		#		Returns XML of the form:
 		#			<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
 		#				<song id="(songID)">
@@ -151,8 +162,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Query string parameters:
 		#			PARAM		TYPE		REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			clear=X		string		N		X must be one of [yes|no]  (defaults to 'yes')
-		#			order=X		string		N		X must be one of [newest|oldest]  (defaults to 'newest')
+		#			clear=		string		N		must be one of [yes|no]  (defaults to 'yes')
+		#			order=		string		N		must be one of [newest|oldest]  (defaults to 'newest')
 		#
 		#		Returns XML of the form:
 		#			<requestlist count="(count)">
@@ -173,8 +184,9 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Query string parameters:
 		#			PARAM		TYPE			REQ?	DESCRIPTION
 		#			----------------------------------------------------------------------------------------------------
-		#			results=X	'all'|integer	Y		if X='all', returns all requests. Otherwise returns the most
-		#													recent X requests made to the server.
+		#			results=	string|integer	Y		if results=='all', returns all requests
+		#												if results==X, where X is an integer, returns the most recent X
+		#													requests made to the server
 		#
 		#		Returns XML of the form: 
 		#			<requestlist count="(count)">
@@ -226,6 +238,33 @@ class MBRadio(BaseHTTPRequestHandler):
 					else:
 						startingFrom = 0
 					
+					# convert string "field1-dir,field2-dir..." to list of tuples: [(field1,dir), (field2,dir), ...]
+					sortBy = []
+					if args.has_key('sort') and args['sort']:
+						terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), args['sort'][0].lower().split(',')))
+						terms = map(lambda triplet: (triplet[0],triplet[2]), terms)
+						
+						# verify that all (field,dir) pairs in the list are acceptable
+						for field, dir in terms:
+							if field in ['artist','title','album','genre']:
+								if dir and dir in ['asc','desc']:
+									sortBy.append( (field,dir) )
+								else:
+									sortBy.append( (field,'asc') )
+							else:
+								# skip
+								pass
+					
+					if not sortBy:
+						sortBy = [('artist','asc'), ('title', 'asc')]
+						
+					if len(sortBy) == 1 and sortBy[0][0] == 'artist':
+						sortBy.append( ('title', 'asc') )
+					elif len(sortBy) == 1 and sortBy[0][0] == 'album':
+						sortBy.append( ('title', 'asc') )
+					elif len(sortBy) == 1 and sortBy[0][0] == 'genre':
+						sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
+						
 					# Execute the search on the music Library!
 					
 					if searchBy == "letter":
@@ -247,10 +286,10 @@ class MBRadio(BaseHTTPRequestHandler):
 						return
 					
 					# sort the results
-					sortedResults = SortSonglist(resultSet)
+					resultSet = SortSonglist(resultSet)
 					
 					# packages the results as XML
-					packagedResults = PackageSonglist(sortedResults, numResults, startingFrom)
+					packagedResults = PackageSonglist(resultSet, numResults, startingFrom)
 					
 					# gzip the results XML
 					compressedResults = packagedResults
@@ -261,6 +300,8 @@ class MBRadio(BaseHTTPRequestHandler):
 					self.send_header('Content-type', 'text/xml')
 					self.end_headers()
 					self.wfile.write(compressedResults)
+					
+					gc.collect()
 					return
 					
 			#endif fileStr == '/search/'
@@ -304,7 +345,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				# clear the list?
 				if clear == 'yes':
 					NewRequests = []
-				
+					
+				gc.collect()
 				return
 				
 			#endif fileStr == '/new-requests/':
@@ -351,6 +393,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.send_header('Content-type', 'text/xml')
 				self.end_headers()
 				self.wfile.write(packageStr)
+				
+				gc.collect()
 				return
 				
 			#endif fileStr == '/requests/':
@@ -717,7 +761,7 @@ def MakeSortingTuple(songID):
 def SortSonglist(songList):
 	songListToSort = map(lambda songID: MakeSortingTuple(songID), songList)
 	songListToSort.sort()
-	sortedSongList = map(lambda triplet: triplet[2], songListToSort)
+	sortedSongList = map(lambda triplet: str(triplet[2]), songListToSort)
 	
 	return sortedSongList
 #enddef SortSonglist
@@ -726,6 +770,8 @@ def SortSonglist(songList):
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
+	
+	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
 	LoadConfig()
 	
@@ -736,7 +782,9 @@ def main():
 		
 	except KeyboardInterrupt:
 		Debug.out('^C received, shutting down server')
+		
 		server.socket.close()
+		
 
 if __name__ == '__main__':
 	main()
