@@ -1,38 +1,52 @@
 <html>
+<head>
+	<title>Request</title>
+	<style>
+		body {font-family: sans-serif; font-size: 10pt;}
+		td   {font-family: sans-serif; font-size: 10pt;}
+		td b { font-size: 12pt; }
+		input {font-family: sans-serif; font-size: 10pt;}
+	</style>
+</head>
 <body>
-<form name="dedication" method="POST" action="http://127.0.0.1:15800/req/">
-<table border="1" cellpadding=2 cellspacing=2>
+<table border="1" cellpadding=8 cellspacing=2>
 	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">Song ID:</td>
-		<td><input type="text" name="songID" size="18" value=""></td>
+		<td><b>Make Request</b></td>
 	</tr>
 	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">Host IP:</td>
-		<td><input type="text" name="host" size="18" value="127.0.0.1"></td>
-	</tr>
-	
-	<tr>
-		<td colspan=2 style="padding-bottom: 12px;"><p style="font-weight: bold; font-size: 10pt;">Dedicate your request:</td>
-	</tr>
-
-	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">Your Name:</td>
-		<td><input type="text" name="requestedBy" size="30" value=""></td>
-	</tr>
-	<tr>
-		<td colspan=2 style="padding-top: 5px;">
-          <p style="font-size: 10pt;">Dedicated to:<br>
-          <textarea rows="3" name="dedication" cols="50"></textarea></p>
+		<td>
+			<table cellpadding=2 cellspacing=0 style="padding: 5px; border: solid 1px #ccc;">
+			<form name="request" method="POST" action="http://127.0.0.1:15800/req/">
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Song ID:</td>
+					<td><input type="text" name="songID" size="18" value=""></td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Host IP:</td>
+					<td><input type="text" name="host" size="18" value="127.0.0.1"></td>
+				</tr>
+				<tr>
+					<td colspan=2 style="padding-bottom: 12px;"><span style="font-weight:bold;">Request Dedication:</span></td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Your Name:</td>
+					<td><input type="text" name="requestedBy" size="30" value=""></td>
+				</tr>
+				<tr>
+					<td colspan=2 style="padding-top: 5px;">
+					  Dedicated to:<br>
+					  <textarea rows="3" name="dedication" cols="50"></textarea></p>
+					</td>
+				</tr>
+				<tr>
+					<td colspan=2 style="padding-top: 5px; padding-bottom: 5px; ">
+					<input type="submit" value="Make Request">
+					</td>
+				</tr>
+			</form>
+			</table>	
 		</td>
 	</tr>
-	
-	<tr>
-		<td colspan=2 style="padding-top: 5px;">
-		<input type="submit" value="Make Request" name="B1">
-		</td>
-	</tr>
-
-</table>	
-</form>
+</table>
 </body>
 </html>

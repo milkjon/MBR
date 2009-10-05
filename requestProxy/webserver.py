@@ -135,8 +135,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		#										field is one of (artist|title|album|genre)
 		#										direction is one of (asc|desc) - if unspecified, defaults to asc
 		#
-		#										If sort =="", defaults to "artist-asc,title-asc"
-		#										If sort =="genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#										If sort == "", defaults to "artist-asc,title-asc"
+		#										If sort == "genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
 		#										If sort != "", and does not include 'title', then the sort will
 		#											always be appended with sort+=",title-asc"
 		#
@@ -147,6 +147,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			results=	integer	 N		the number of results to return  (defaults to 100)
 		#			starting=	integer	 N		For continuation of search results, return songs starting at
 		#										result #X (defaults to 0)
+		#			compress=	string	 N		If compress == "", don't compress.
+		#										If compress == "gzip", return results gzip'ed
 		#
 		#		Returns XML of the form:
 		#			<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
@@ -292,16 +294,19 @@ class MBRadio(BaseHTTPRequestHandler):
 				
 				# packages the results as XML
 				packagedResults = PackageSonglist(resultSet, numResults, startingFrom)
+				headerContentType = 'text/xml'
 				
-				# gzip the results XML
-				compressedResults = packagedResults
-				#compressedResults = zlib.compress(resultSet)
+				# gzip the results?
+				if args.has_key('compress') and args['compress']:
+					if args['compress'][0].lower() == 'gzip':
+						headerContentType = 'application/x-gzip'
+						packagedResults = zlib.compress(packagedResults)
 				
 				# send it back
 				self.send_response(200)
-				self.send_header('Content-type', 'text/xml')
+				self.send_header('Content-type', headerContentType)
 				self.end_headers()
-				self.wfile.write(compressedResults)
+				self.wfile.write(packagedResults)
 				
 				gc.collect()
 				return

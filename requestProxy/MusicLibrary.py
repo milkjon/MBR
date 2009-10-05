@@ -223,6 +223,8 @@ class MusicLibrary:
 		theLetter = theLetter[0].lower()
 		
 		if (theLetter.isalpha() or theLetter == '0') and self.byLetter.has_key(theLetter):
+			Debug.out("Searching letter", theLetter)
+			
 			songList = self.byLetter[theLetter]
 			return songList
 		else:
