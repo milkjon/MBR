@@ -758,15 +758,16 @@ def MakeSortingTuple(songID, sortBy):
 #enddef MakeSortingTuple
 
 def SortSonglist(songList, sortBy):
+
 	# make a list of tuples to correctly sort the songs
 	songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), songList)
-	print songListToSort
 	# sort!
 	songListToSort.sort()
 	# the songID is returned as the last item in the tuple
 	sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
-	#print sortedSongList
+
 	return sortedSongList
+	
 #enddef SortSonglist
 
 #----------------------------------------------------------------------------------------------------------------------#
