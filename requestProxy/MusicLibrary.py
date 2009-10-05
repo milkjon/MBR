@@ -24,7 +24,7 @@ def SafeAscii(theString):
 
 def	String2RESafeAsciiWordList(theString):
 	# Transforms a string into a list consisting of the individual words in the string, where each word has
-	# been translated into upper-case 7-bit ASCII and escaped for use in a regular-expression search.
+	# been translated into lower-case 7-bit ASCII and escaped for use in a regular-expression search.
 	#
 	# NB: a "word" is specified by the presence of whitespace characters found inbetween any non-whitespace
 	#     characters, as specified by the python method str.split()
@@ -34,8 +34,8 @@ def	String2RESafeAsciiWordList(theString):
 	#	returns:
 	#		list  as [word1, word2, ... ]
 	
-	# transform string into upper-case ASCII:
-	asciiStr = SafeAscii(theString).upper()
+	# transform string into lower-case ASCII:
+	asciiStr = SafeAscii(theString).lower()
 	
 	# split string into individual words using the .split() method
 	asciiWords = asciiStr.split()
@@ -47,6 +47,13 @@ def	String2RESafeAsciiWordList(theString):
 	return reEscapedWords
 			
 #enddef	String2RESafeAsciiWordList()
+
+def FirstAlphanumericChar(theString):
+	asciiStr = SafeAscii(theString).lower()
+	for c in asciiStr:
+		if c.isalnum():
+			return c
+	return '0'
 
 class MusicLibrary:
 	
@@ -86,7 +93,7 @@ class MusicLibrary:
 	
 	def __init__(self):
 		
-		asciiLetters = string.ascii_uppercase
+		asciiLetters = string.ascii_lowercase
 		for c in asciiLetters:
 			self.byLetter[c] = []
 			
@@ -114,67 +121,58 @@ class MusicLibrary:
 		songID = songData['id']
 		songArtist = unicode(songData['artist']).strip()
 		songTitle = unicode(songData['title']).strip()
-		
+
 		if not songArtist and not songTitle:
-			# no good tag data. skip it.
+			# no good tag data (no artist, no title) just skip it. too bad.
 			return
-		
-		songGenre = unicode(songData['genre']).strip()
-		songAlbum = unicode(songData['album']).strip()
-		songDuration = unicode(songData['duration']).strip()
-		
-		if songData.has_key('sortTitle'):
-			songSortTitle = unicode(songData['sortTitle']).strip()
-		else:
-			songSortTitle = u''
-		
-		if songData.has_key('sortArtist'):
-			songSortArtist = unicode(songData['sortArtist']).strip()
-		else:
-			songSortArtist = u''
-		
-		if songSortArtist:
-			firstLetter = songSortArtist[0]
-		elif songArtist:
-			firstLetter = songArtist[0]
-		elif songSortTitle:
-			firstLetter = songSortTitle[0]
-		elif songTitle:
-			firstLetter = songTitle[0]
-		firstLetter = SafeAscii(firstLetter).upper()
 		
 		if not songArtist:
 			songArtist = u'[Unknown]'
 		if not songTitle:
 			songTitle = u'[Unknown]'
 		
+		songGenre = unicode(songData['genre']).strip()
+		songAlbum = unicode(songData['album']).strip()
+		songDuration = unicode(songData['duration']).strip()
+		
+		songSortTitle = ''
+		if songData.has_key('sortTitle') and songData['sortTitle']:
+			songSortTitle = unicode(songData['sortTitle']).strip()
+		if not songSortTitle:
+			songSortTitle = songTitle
+		
+		songSortArtist = ''
+		if songData.has_key('sortArtist') and songData['sortArtist']:
+			songSortArtist = unicode(songData['sortArtist']).strip()
+		if not songSortArtist:
+			songSortArtist = songArtist
+		
 		self.songs[songID] = {'title': songTitle, 'artist': songArtist, 'album': songAlbum, 'genre': songGenre, 
 								'duration': songDuration, 'sortTitle': songSortTitle, 'sortArtist': songSortArtist }
 								
 		# place song in the "byLetter" dictionary for quick and easy searching later
-		if firstLetter:
+		if songSortArtist != u'[Unknown]':
+			firstLetter = FirstAlphanumericChar(songSortArtist)
+		elif songSortTitle != u'[Unknown]':
+			firstLetter = FirstAlphanumericChar(songSortTitle)
 		
+		if firstLetter:
 			if not firstLetter.isalpha():
 				firstLetter = '0'
-			
 			self.byLetter[firstLetter].append(songID)
 		
 		# place song in the "byArtist" dictionary to quick and easy searching later
-		if songArtist:
-			a = SafeAscii(songArtist).upper()
-			
+		if songArtist != u'[Unknown]':
+			a = SafeAscii(songArtist).lower()
 			if not self.byArtist.has_key(a):
 				self.byArtist[a] = []
-				
 			self.byArtist[a].append(songID)
 		
 		# place song in the "byGenre" dictionary for quick and easy searching later
 		if songGenre:
-			g = SafeAscii(songGenre).upper()
-			
+			g = SafeAscii(songGenre).lower()
 			if not self.byGenre.has_key(g):
 				self.byGenre[g] = []
-				
 			self.byGenre[g].append(songID)
 			
 	#enddef addSong()
@@ -215,14 +213,14 @@ class MusicLibrary:
 		# with the specified letter.
 		#
 		#	arguments:
-		#		theLetter	as  string of length 1, where (theLetter == '0' OR theLetter in string.ascii_uppercase)
+		#		theLetter	as  string of length 1, where (theLetter == '0' OR theLetter in string.ascii_lowercase)
 		#	returns:
 		#		None	On error only
 		#		list	If results are found, [songID1, songID2, ...]
 		#		list	If no results are found, []
 		
 		# sanitize data:
-		theLetter = theLetter[0].upper()
+		theLetter = theLetter[0].lower()
 		
 		if (theLetter.isalpha() or theLetter == '0') and self.byLetter.has_key(theLetter):
 			songList = self.byLetter[theLetter]
@@ -322,7 +320,7 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for songID, songData in self.songs.items():
-				songTitle = SafeAscii(songData['title']).upper()
+				songTitle = SafeAscii(songData['title']).lower()
 				matches = filter(lambda word: not re.search(word, songTitle) is None, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
@@ -360,21 +358,21 @@ class MusicLibrary:
 			for songID, songData in self.songs.items():
 				
 				# search by artist first
-				songArtist = SafeAscii(songData['artist']).upper()
+				songArtist = SafeAscii(songData['artist']).lower()
 				matches = filter(lambda word: not re.search(word, songArtist) is None, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 				
 				# search by title
-				songTitle = SafeAscii(songData['title']).upper()
+				songTitle = SafeAscii(songData['title']).lower()
 				matches = filter(lambda word: not re.search(word, songTitle) is None, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 					
 				# search by genre
-				songGenre = SafeAscii(songData['genre']).upper()
+				songGenre = SafeAscii(songData['genre']).lower()
 				matches = filter(lambda word: not re.search(word, songGenre) is None, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)

@@ -1,48 +1,156 @@
 <html>
+<head>
+	<title>Search</title>
+	<style>
+		body {font-family: sans-serif; font-size: 10pt;}
+		td   {font-family: sans-serif; font-size: 10pt;}
+		td b { font-size: 12pt; }
+		input {font-family: sans-serif; font-size: 10pt;}
+	</style>
+</head>
 <body>
-<form name="search" method="GET" action="http://127.0.0.1:15800/search/">
-<table border="1" cellpadding=2 cellspacing=2>
+<table border="1" cellpadding=8 cellspacing=2>
 	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">Search for:</td>
-		<td><input type="text" name="for" size="48" value=""></td>
+		<td><b>Search:</b></td>
 	</tr>
 	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">In:</td>
 		<td>
-			<select name="by" size="1">
-				<option value="artist">Artist</option>
-				<option value="title">Title</option>
-				<option value="genre">Genre</option>
-				<option value="any">Any</option>
-			</select>
+			<table cellpadding=2 cellspacing=0 style="padding: 5px; border: solid 1px #ccc;">
+			<form name="search" method="GET" action="http://127.0.0.1:15800/search/">
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Search for:</td>
+					<td><input type="text" name="for" size="48" value=""></td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>In:</td>
+					<td>
+						<select name="by" size="1">
+							<option value="artist">Artist</option>
+							<option value="title">Title</option>
+							<option value="genre">Genre</option>
+							<option value="any">Any</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle># Results:</td>
+					<td>
+						<select name="results" size="1">
+							<option value="10">10</option>
+							<option value="25">25</option>
+							<option value="50">50</option>
+							<option selected value="100">100</option>
+							<option value="200">200</option>
+							<option value="500">500</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Starting from:</td>
+					<td><input type="text" name="starting" size="10" value="0"></td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Sort by:</td>
+					<td>
+						<select name="sort" size="1">
+							<option value="artist,title">Artist, Title</option>
+							<option value="title">Title</option>
+							<option value="album">Album</option>
+							<option value="genre,artist,title">Genre, Artist, Title</option>
+							<option value="genre,title">Genre, Title</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td colspan=2 style="padding-top: 5px; padding-bottom: 5px;">
+					<input type="submit" value="Search">
+					</td>
+				</tr>
+			</form>
+			</table>
 		</td>
 	</tr>
-	
 	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;"># Results:</td>
+		<td><b>Search by letter:</b></td>
+	</tr>
+	<tr>
 		<td>
-			<select name="results" size="1">
-				<option value="10">10</option>
-				<option value="25">25</option>
-				<option value="50">50</option>
-				<option value="100">100</option>
-				<option value="200">200</option>
-				<option value="500">500</option>
-			</select>
+			<table cellpadding=2 cellspacing=0 style="padding: 5px; border: solid 1px #ccc;">
+			<form name="byLetter" method="GET" action="http://127.0.0.1:15800/search/">
+				<input type="hidden" name="by" value="letter">
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Letter:</td>
+					<td>
+						<select name="for" size="1">
+							<option value="A">A</option>
+							<option value="B">B</option>
+							<option value="C">C</option>
+							<option value="D">D</option>
+							<option value="D">D</option>
+							<option value="E">E</option>
+							<option value="F">F</option>
+							<option value="G">G</option>
+							<option value="H">H</option>
+							<option value="I">I</option>
+							<option value="J">J</option>
+							<option value="K">K</option>
+							<option value="L">L</option>
+							<option value="M">M</option>
+							<option value="N">N</option>
+							<option value="O">O</option>
+							<option value="P">P</option>
+							<option value="Q">Q</option>
+							<option value="R">R</option>
+							<option value="S">S</option>
+							<option value="T">T</option>
+							<option value="U">U</option>
+							<option value="V">V</option>
+							<option value="W">W</option>
+							<option value="X">X</option>
+							<option value="Y">Y</option>
+							<option value="Z">Z</option>
+							<option value="0">[Other]</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle># Results:</td>
+					<td>
+						<select name="results" size="1">
+							<option value="10">10</option>
+							<option value="25">25</option>
+							<option value="50">50</option>
+							<option selected value="100">100</option>
+							<option value="200">200</option>
+							<option value="500">500</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Starting from:</td>
+					<td><input type="text" name="starting" size="10" value="0"></td>
+				</tr>
+				<tr>
+					<td nowrap width=20% style="padding-right: 8px;" valign=middle>Sort by:</td>
+					<td>
+						<select name="sort" size="1">
+							<option value="artist,title">Artist, Title</option>
+							<option value="title">Title</option>
+							<option value="album">Album</option>
+							<option value="genre,artist,title">Genre, Artist, Title</option>
+							<option value="genre,title">Genre, Title</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td colspan=2 style="padding-top: 5px; padding-bottom: 5px;">
+					<input type="submit" value="Search">
+					</td>
+				</tr>
+			</form>
+			</table>
 		</td>
 	</tr>
-	<tr>
-		<td nowrap width=20% style="padding-right: 8px;" valign=bottom><p style="font-size: 10pt;">Starting from:</td>
-		<td><input type="text" name="starting" size="10" value="0"></td>
-	</tr>
-	
-	<tr>
-		<td colspan=2 style="padding-top: 5px;">
-		<input type="submit" value="Search" name="B1">
-		</td>
-	</tr>
-
-</table>	
-</form>
+</table>
 </body>
 </html>

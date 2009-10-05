@@ -135,10 +135,14 @@ class MBRadio(BaseHTTPRequestHandler):
 		#										field is one of (artist|title|album|genre)
 		#										direction is one of (asc|desc) - if unspecified, defaults to asc
 		#
-		#										If sort=="", defaults to "artist-asc,title-asc"
-		#										If sort=="artist-[dir]", defaults to "artist-[dir],title-asc"
-		#										If sort=="album-[dir]", defaults to "album-[dir],title-asc"
-		#										If sort=="genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#										If sort =="", defaults to "artist-asc,title-asc"
+		#										If sort =="genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#										If sort != "", and does not include 'title', then the sort will
+		#											always be appended with sort+=",title-asc"
+		#
+		#										NOTE! At this time my implementation ignores the sort direction 
+		#										      directive until I can write some better sorting code. All sorts
+		#										      will be done ascending until then.
 		#
 		#			results=	integer	 N		the number of results to return  (defaults to 100)
 		#			starting=	integer	 N		For continuation of search results, return songs starting at
@@ -210,7 +214,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#
 		#---------------------------------------------------------------------------------------------------------------
 		
-		#try:
+		try:
 			# split the request into the "file name" and the "query string"
 			fileStr, sepChar, queryStr = self.path.partition('?')
 			
@@ -223,86 +227,84 @@ class MBRadio(BaseHTTPRequestHandler):
 					self.sendError(500, 'Incomple search parameters')
 					return
 
-				if args.has_key('by') and args.has_key('for') and args['by'] and args['for']:
+				if not args.has_key('by') or not args.has_key('for') or not args['by'] or not args['for']:
+					self.sendError(500, 'Incomple search parameters: /search/?for=X&by=Y required')
+					return
 					
-					searchBy = args['by'][0].lower()
-					searchFor = args['for'][0]
+				searchBy = args['by'][0].lower()
+				searchFor = args['for'][0]
+				
+				if args.has_key('results') and args['results']:
+					numResults = int(args['results'][0])
+				else:
+					numResults = 100
 					
-					if args.has_key('results') and args['results']:
-						numResults = int(args['results'][0])
-					else:
-						numResults = 100
-						
-					if args.has_key('starting') and args['starting']:
-						startingFrom = int(args['starting'][0])
-					else:
-						startingFrom = 0
-					
-					# convert string "field1-dir,field2-dir..." to list of tuples: [(field1,dir), (field2,dir), ...]
-					sortBy = []
-					if args.has_key('sort') and args['sort']:
-						terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), args['sort'][0].lower().split(',')))
-						terms = map(lambda triplet: (triplet[0],triplet[2]), terms)
-						
-						# verify that all (field,dir) pairs in the list are acceptable
-						for field, dir in terms:
-							if field in ['artist','title','album','genre']:
+				if args.has_key('starting') and args['starting']:
+					startingFrom = int(args['starting'][0]) - 1
+				else:
+					startingFrom = 0
+				
+				# convert sort string "field1-dir,field2-dir..." to list: [(field1,dir), (field2,dir), ...]
+				sortBy = []
+				if args.has_key('sort') and args['sort']:
+					sortStr = args['sort'][0].lower()
+					if sortStr.find('title') == -1:
+						sortStr += ',title=asc'
+					terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), sortStr.split(',')))
+
+					# verify that all (field,dir) pairs in the list are acceptable
+					for field, dummy, dir in terms:
+						if field in ['artist','title','album','genre']:
+							# make sure it's not a duplicate
+							if not filter(lambda pair: pair[0]==field, sortBy):
 								if dir and dir in ['asc','desc']:
 									sortBy.append( (field,dir) )
 								else:
 									sortBy.append( (field,'asc') )
-							else:
-								# skip
-								pass
-					
-					if not sortBy:
-						sortBy = [('artist','asc'), ('title', 'asc')]
-						
-					if len(sortBy) == 1 and sortBy[0][0] == 'artist':
-						sortBy.append( ('title', 'asc') )
-					elif len(sortBy) == 1 and sortBy[0][0] == 'album':
-						sortBy.append( ('title', 'asc') )
-					elif len(sortBy) == 1 and sortBy[0][0] == 'genre':
-						sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
-						
-					# Execute the search on the music Library!
-					
-					if searchBy == "letter":
-						resultSet = Library.searchBy_Letter(searchFor)
-					elif searchBy == "artist":
-						resultSet = Library.searchBy_Artist(searchFor)
-					elif searchBy == "genre":
-						resultSet = Library.searchBy_Genre(searchFor)
-					elif searchBy == "title":
-						resultSet = Library.searchBy_Title(searchFor)
-					elif searchBy == "any":
-						resultSet = Library.searchBy_Any(searchFor)
-					else:
-						self.sendError(500, 'Unknown search parameter by=' + searchBy)
-						return
-						
-					if resultSet is None:
-						self.sendError(500, 'Search error occurred')
-						return
-					
-					# sort the results
-					resultSet = SortSonglist(resultSet)
-					
-					# packages the results as XML
-					packagedResults = PackageSonglist(resultSet, numResults, startingFrom)
-					
-					# gzip the results XML
-					compressedResults = packagedResults
-					#compressedResults = zlib.compress(resultSet)
-					
-					# send it back
-					self.send_response(200)
-					self.send_header('Content-type', 'text/xml')
-					self.end_headers()
-					self.wfile.write(compressedResults)
-					
-					gc.collect()
+				
+				if not sortBy:
+					sortBy = [('artist','asc'), ('title', 'asc')]
+				if len(sortBy) == 1 and sortBy[0][0] == 'genre':
+					sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
+
+				# Execute the search on the music Library!
+				
+				if searchBy == "letter":
+					resultSet = Library.searchBy_Letter(searchFor)
+				elif searchBy == "artist":
+					resultSet = Library.searchBy_Artist(searchFor)
+				elif searchBy == "genre":
+					resultSet = Library.searchBy_Genre(searchFor)
+				elif searchBy == "title":
+					resultSet = Library.searchBy_Title(searchFor)
+				elif searchBy == "any":
+					resultSet = Library.searchBy_Any(searchFor)
+				else:
+					self.sendError(500, 'Unknown search parameter by=' + searchBy)
 					return
+					
+				if resultSet is None:
+					self.sendError(500, 'Search error occurred')
+					return
+
+				# sort the results
+				resultSet = SortSonglist(resultSet,sortBy)
+				
+				# packages the results as XML
+				packagedResults = PackageSonglist(resultSet, numResults, startingFrom)
+				
+				# gzip the results XML
+				compressedResults = packagedResults
+				#compressedResults = zlib.compress(resultSet)
+				
+				# send it back
+				self.send_response(200)
+				self.send_header('Content-type', 'text/xml')
+				self.end_headers()
+				self.wfile.write(compressedResults)
+				
+				gc.collect()
+				return
 					
 			#endif fileStr == '/search/'
 			
@@ -414,8 +416,9 @@ class MBRadio(BaseHTTPRequestHandler):
 			self.sendError(500, 'Server error')
 			return
 
-		#except:
-		#	pass
+		except:
+			self.sendError(500, 'Server error')
+			pass
 			
 	#enddef do_GET
 	
@@ -655,12 +658,16 @@ def PackageSonglist(songList, numResults, startingFrom):
 	if endingAt > len(songList):
 		endingAt = len(songList)
 	
+	last = endingAt - 1
+	if last < 0:
+		last = 0
+	
 	# take the appropriate slice:
 	slicedList = songList[startingFrom:endingAt]
 	
 	packageStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
 					'<songlist count=\"' + str(len(slicedList)) + '\" ' + 'total=\"' + str(len(songList)) + '\" ' + \
-					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(endingAt-1) + '\"' + '>\n'
+					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n'
 	
 	for song in slicedList:
 		packageStr = packageStr + PackageSong(song)
@@ -726,43 +733,39 @@ def SafeAscii(theString):
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
 #enddef SafeAscii
 
-def MakeSortingTuple(songID):
+def MakeSortingTuple(songID, sortBy):
 	song = Library.getSong(songID)
 	if song is None:
-		return (None, None, None)
+		return tuple(map(lambda x: None, range(len(sortBy)+1)))
 	
-	if song.has_key('sortArtist') and song['sortArtist']:
-		f1 = song['sortArtist']
-	elif song.has_key('artist') and song['artist']:
-		f1 = song['artist']
-	elif song.has_key('title') and song['title']:
-		f1 = song['title']
-	else:
-		f1 = None
-		
-	f1 = SafeAscii(f1).upper()
-	
-	if song.has_key('sortTitle') and song['sortTitle']:
-		f2 = song['sortTitle']
-	elif song.has_key('sortTitle') and song['title']:
-		f2 = song['title']
-	else:
-		f2 = None
-	
-	if f1 is None or f2 is None:
-		return (None, None, None)
-	
-	f2 = SafeAscii(f2).upper()
-	
-	return (f1, f2, songID)
+	sortList=[]
+	for field,dir in sortBy:
+		try:
+			if field == 'artist':
+				sortList.append(SafeAscii(song['sortArtist']).lower())
+			elif field == 'title':
+				sortList.append(SafeAscii(song['sortTitle']).lower())
+			elif field == 'album':
+				sortList.append(SafeAscii(song['album']).lower())
+			elif field == 'genre':
+				sortList.append(SafeAscii(song['genre']).lower())
+		except:
+			pass
+	sortList.append(songID)
 
-#enddef makeSongName
+	return tuple(sortList)
 
-def SortSonglist(songList):
-	songListToSort = map(lambda songID: MakeSortingTuple(songID), songList)
+#enddef MakeSortingTuple
+
+def SortSonglist(songList, sortBy):
+	# make a list of tuples to correctly sort the songs
+	songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), songList)
+	print songListToSort
+	# sort!
 	songListToSort.sort()
-	sortedSongList = map(lambda triplet: str(triplet[2]), songListToSort)
-	
+	# the songID is returned as the last item in the tuple
+	sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
+	#print sortedSongList
 	return sortedSongList
 #enddef SortSonglist
 
