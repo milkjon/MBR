@@ -17,11 +17,34 @@ import time
 import MusicLibrary
 import Debug
 
+class ParserData:
+	skipRest = 0
+	inKey = 0
+	inDict = 0
+	inTracklist = 0
+	inTrack = 0
+	inData = 0
+	key = ''
+	songData = {}
+	def resetSongData(self):
+		self.songData.update( {'id':u'','title':u'','artist':u'','sortTitle':u'','sortArtist':u'',\
+								'album':u'','genre':u'','duration':u''} )
+#endclass ParserData
+
 class iTunesLibrary(MusicLibrary.MusicLibrary):
-		
+	
+	parser = None
+	
+	#------------------------------------------------------------------------------------------------------------------#
+	# Load the library from the itunes xml
+	#------------------------------------------------------------------------------------------------------------------#
+	
 	def load(self, path):
 		
 		Debug.out("   Parsing iTunes XML...")
+		
+		# reset parse variables
+		self.parser = ParserData()
 		
 		t1 = time.time()
 		
@@ -41,95 +64,82 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		
 		Debug.out("   Loaded", len(self.songs), "songs!")
 		Debug.out("   Parsing took", round(t2 - t1,4), "seconds")
+		
 	#enddef load()
 	
-	
-	#------------------------------------------------------------------------------------------------------------------#
-	# Private variables (used by the XML parser)
-	#------------------------------------------------------------------------------------------------------------------#
-	
-	inDict = 0
-	inKey = 0
-	inTracks = 0
-	inTrack = 0
-	inData = 0
-	currentKey = ''
-	skipRest = 0
-	songData = { }
 		
 	#------------------------------------------------------------------------------------------------------------------#
 	# Private methods:
 	#------------------------------------------------------------------------------------------------------------------#
 	
 	def start_element(self, name, attrs):
-		if self.skipRest:
+		if self.parser.skipRest:
 			return
 			
 		if name == u'key':
-			self.inKey = 1
+			self.parser.inKey = 1
 		elif name == u'dict':
-			self.inDict = 1
+			self.parser.inDict = 1
 		elif name == u'string' or name == u'integer':
-			self.inData = 1
+			self.parser.inData = 1
 	#enddef start_element()
 	
 	def end_element(self, name):
-		if self.skipRest:
+		if self.parser.skipRest:
 			return
 			
 		if name == u'key':
-			self.inKey = 0
+			self.parser.inKey = 0
 		elif name == u'dict':
-			self.inDict = 0
+			self.parser.inDict = 0
 
-			if self.inTracks and self.inTrack:
-				self.addSong(self.songData)
-				self.inTrack = 0
-				self.currentKey = ""
-				songData = { }
+			if self.parser.inTracklist and self.parser.inTrack:
+				self.addSong(self.parser.songData)
+				self.parser.inTrack = 0
+				self.parser.key = ""
 				
-		self.inData = 0
+		self.parser.inData = 0
 	#enddef end_element()
 	
 	def char_data(self, data):
-		if self.skipRest:
+		if self.parser.skipRest:
 			return
 			
-		if self.inKey:
+		if self.parser.inKey:
 			if data == u'Playlists':
-				self.skipRest = 1
+				self.parser.skipRest = 1
 				return
 			elif data == u'Tracks':
-				self.inTracks = 1
+				self.parser.inTracklist = 1
 				return
-			elif self.inTracks:
-				self.currentKey = data
+			
+			if self.parser.inTracklist:
+				self.parser.key = data
 				
 				if data == u'Track ID':
-					self.inTrack = 1
-					self.songData.update({'id':u'', 'title':u'', 'artist':u'', 'album':u'', 'genre':u'',
-											'duration':u'', 'sortTitle':u'', 'sortArtist':u''})
+					self.parser.inTrack = 1
+					self.parser.resetSongData()
 					
-		#endif self.inKey
+		#endif self.parser.inKey
 					
-		elif self.inData and self.inTracks and self.inTrack:
-			if self.currentKey == u'Track ID':
-				self.songData['id'] = data
-			elif self.currentKey == u'Name':
-				self.songData['title'] = data
-			elif self.currentKey == u'Artist':
-				self.songData['artist'] = data
-			elif self.currentKey == u'Album':
-				self.songData['album'] = data
-			elif self.currentKey == u'Genre':
-				self.songData['genre'] = data
-			elif self.currentKey == u'Total Time':
-				self.songData['duration'] = data
-			elif self.currentKey == u'Sort Name':
-				self.songData['sortTitle'] = data
-			elif self.currentKey == u'Sort Artist':
-				self.songData['sortArtist'] = data
-		#endif self.inData and self.inTracks and self.inTrack
+		elif self.parser.inData and self.parser.inTrack:
+			if self.parser.key == u'Track ID':
+				self.parser.songData['id'] = data
+			elif self.parser.key == u'Name':
+				self.parser.songData['title'] = data
+			elif self.parser.key == u'Artist':
+				self.parser.songData['artist'] = data
+			elif self.parser.key == u'Album':
+				self.parser.songData['album'] = data
+			elif self.parser.key == u'Genre':
+				self.parser.songData['genre'] = data
+			elif self.parser.key == u'Total Time':
+				self.parser.songData['duration'] = data
+			elif self.parser.key == u'Sort Name':
+				self.parser.songData['sortTitle'] = data
+			elif self.parser.key == u'Sort Artist':
+				self.parser.songData['sortArtist'] = data
+		#endif self.parser.inData and self.parser.inTrack
 		
 	#enddef char_data()
 
