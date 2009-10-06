@@ -1,3 +1,4 @@
+#	vim: set tabstop=4 columns=120 shiftwidth=4:
 #-----------------------------------------------------------------------------------------------------------------------
 #	MBRadio
 #
@@ -48,11 +49,16 @@
 	RESULT			?
 		
 		
-4.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
+4a.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
 					currently playing?
-					
-					Also, is there a way to pull from iTunes a list of tracks that have recently been played?
+
+	RESULT			Yes, currently playing song can be queried from iTunes with Applescript.
+
+
+4b.	INVESTIGATE		Also, is there a way to pull from iTunes a list of tracks that have recently been played?
 					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
 					this information on the website.
 					
-	RESULT			?
+	RESULT		    Last 10 tracks played may be doable with so called smart playlists. But it smells fishy. 
+					I have no idea if those can be created programmatically or not.
+
