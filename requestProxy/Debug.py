@@ -1,3 +1,4 @@
+#	vim: set tabstop=4 columns=120 shiftwidth=4:
 import sys
 
 global DEBUG
