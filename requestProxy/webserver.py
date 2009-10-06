@@ -467,7 +467,7 @@ class MBRadio(BaseHTTPRequestHandler):
 				theTime = long(time.time())
 				
 				# append if it's not already in the list
-				if not filter(lambda pair: pair[0]==songID, History)
+				if not filter(lambda pair: pair[0]==songID, History):
 					History.append( (songID, theTime) )
 					LogSong(songID, theTime)
 				
@@ -997,7 +997,7 @@ def LogSong(songID, timePlayed):
 		return
 		
 	# make the log entry as XML
-	playedXML =		'<played time=\"' + str(timePlayed) + '\">' + \
+	playedXML =		'<played time=\"' + str(timePlayed) + '\">'
 					
 	songXML = 		'<song>' + \
 					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
