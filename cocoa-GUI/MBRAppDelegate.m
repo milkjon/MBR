@@ -125,8 +125,8 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 10 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
-		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 5 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
+		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 17 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
+		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 9 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 
 	}
 	return self;
