@@ -69,8 +69,10 @@ def LoadConfig():
 	isMac = 'Darwin' == platform.system() 
 	if isMac:
 		Config['AppDir'] = os.path.join(os.path.expanduser('~'), "Library/Application Support/MBRadio")
+		Config['LogDir'] = os.path.join(Config['AppDir'], "Logs")
+
+		# FIXME
 		#Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
-		Config['LogDir'] = os.path.join(Config['AppDir'], "logs")	# could be ~/Library/Logs/MBRadio/
 		Config['iTunesDB'] = '/Users/Shared/iTunes/iTunes Music Library.xml'
 	else:
 		# Windows I guess
