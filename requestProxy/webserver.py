@@ -991,7 +991,7 @@ def LogSong(songID, timePlayed):
 	# make sure the log file and logs directory exist:
 	try:
 		if not os.path.exists(Config['LogDir']):
-			os.mkdir(Config['LogDir'])
+			os.makedirs(Config['LogDir'])
 
 		playedLogFile = os.path.join(Config['LogDir'], "played.xml")
 		
