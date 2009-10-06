@@ -50,6 +50,11 @@
 	
 	TO DO			Once we decide how the configurations are stored, the corresponding code must be written in
 	(Erich)			the python script to read the config information.
+
+	FOLLOWUP		I don't really see the need for a common config file. Can't the prefs be set via the http-interface.
+	(Jon)			Apart from the serverPort I guess, which could be given as a parameter when the server is started (by the objc app)
+					I am plainning to use the normal cocoa defaults system for storing the prefs. The prefs will be stored in .plist format 
+					(binary or textual) A good Mac way is to minimize the prefs.
 	
 	RESULT			?
 		
