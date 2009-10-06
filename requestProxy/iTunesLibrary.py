@@ -123,7 +123,7 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		#endif self.parser.inKey
 					
 		elif self.parser.inData and self.parser.inTrack:
-			if self.parser.key == u'Track ID':
+			if self.parser.key == u'Persistent ID':
 				self.parser.songData['id'] = data
 			elif self.parser.key == u'Name':
 				self.parser.songData['title'] = data

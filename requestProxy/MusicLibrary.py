@@ -149,7 +149,13 @@ class MusicLibrary:
 		
 		songGenre = songData['genre'].strip()
 		songAlbum = songData['album'].strip()
-		songDuration = long(songData['duration'].strip())
+
+		songDuration = 0
+		try:
+			songDuration = long(songData['duration'].strip())
+		except ValueError:
+			pass
+			
 		
 		songSortTitle = ''
 		if songData.has_key('sortTitle') and songData['sortTitle']:
