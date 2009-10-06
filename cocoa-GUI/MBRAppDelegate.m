@@ -94,14 +94,17 @@
 }
 
 - (void) checkRequests
-{
-	// FIXME: Implementation missing
-	//     - Check if this could be done via stdout or something
-	
-	// Read the file
+{	
 	// Add new requests to the array.
 	
 	NSLog(@"check requests");
+	NSString *s = @"http://localhost:15800/new-requests/";
+	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
+	NSLog(result);
+	
+	// parse the result and update the array
+	
+
 }
 
 - (void) querySong
