@@ -104,12 +104,26 @@
 	NSLog(@"check requests");
 }
 
+- (void) querySong
+{
+	NSString *source = @"tell application \"iTunes\" to get persistent id of current track";
+	NSAppleScript* script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
+	NSString *ident = [[script executeAndReturnError: nil] stringValue];
+	NSLog(@"persistent identifer: %@", ident);
+	
+	// Make the http request
+	NSString *str = [NSString stringWithFormat: @"http://localhost:15800/now-playing?songid=%@", ident];
+	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
+}
+
 - (id) init
 {
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 10 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
+		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 5 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
+
 	}
 	return self;
 }
@@ -119,6 +133,8 @@
 	[requests release];
 	[requestCheckTimer_ invalidate];
 	[requestCheckTimer_ release];
+	[songQueryTimer_ invalidate];
+	[songQueryTimer_ release];
 	[super dealloc];
 }
 
