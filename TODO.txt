@@ -53,19 +53,6 @@
 	
 	RESULT			?
 		
-		
-4a.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
-					currently playing?
-
-	FOLLOWUP		Yes, currently playing song can be queried from iTunes with Applescript.
-	(Jonathan)
-	
-	FOLLOWUP		Good. Let's implement this with a timer. Every X seconds, poll iTunes for the currently playing
-	(Erich)			song. If the song is different than the result of the previous poll, then the ObjC app will send
-					the SongID to the python server for recording and tracking via the 
-					'http://localhost:15800/now-playing?songid=X'  interface.
-
-	RESULT			?
 
 4b.	INVESTIGATE		Also, is there a way to pull from iTunes a list of tracks that have recently been played?
 					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
@@ -82,8 +69,24 @@
 					at a later time.
 
 	RESULT			?
+
+
+=== Done
+
+4a.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
+					currently playing?
+
+	FOLLOWUP		Yes, currently playing song can be queried from iTunes with Applescript.
+	(Jonathan)
+	
+	FOLLOWUP		Good. Let's implement this with a timer. Every X seconds, poll iTunes for the currently playing
+	(Erich)			song. If the song is different than the result of the previous poll, then the ObjC app will send
+					the SongID to the python server for recording and tracking via the 
+					'http://localhost:15800/now-playing?songid=X'  interface.
+
+	RESULT			Done
 	
 5	TO DO			Implement the 'http://localhost:15800/now-playing?songid=X'  interface from the ObjC program.
 	(Jonathan)
 
-	STATUS			Incomplete
+	STATUS			Done
