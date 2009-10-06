@@ -9,7 +9,7 @@
 
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *requests;
-	NSTimer *timer_;
+	NSTimer *requestCheckTimer_;
 	
 	IBOutlet NSArrayController *arrayController;
 	IBOutlet NSTableView *tableView;
