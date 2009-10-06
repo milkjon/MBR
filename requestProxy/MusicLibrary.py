@@ -9,7 +9,7 @@
 #	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
 
-import string, re, unicodedata, time
+import string, re, unicodedata, time, gc
 
 # local imports
 import Debug
@@ -107,6 +107,21 @@ class MusicLibrary:
 		
 	#enddef load()
 	
+	def reset(self):
+		
+		self.songs.clear()
+		self.byGenre.clear()
+		self.byArtist.clear()
+		for letter in self.byLetter.keys():
+			del self.byLetter[letter]
+			self.byLetter[letter] = []
+			
+		gc.collect()
+		
+	#enddef reset()
+	
+	
+	
 	#------------------------------------------------------------------------------------------------------------------#
 	# Private methods:
 	#------------------------------------------------------------------------------------------------------------------#
@@ -119,8 +134,8 @@ class MusicLibrary:
 		#		(void)
 		
 		songID = songData['id']
-		songArtist = unicode(songData['artist']).strip()
-		songTitle = unicode(songData['title']).strip()
+		songArtist = songData['artist'].strip()
+		songTitle = songData['title'].strip()
 
 		if not songArtist and not songTitle:
 			# no good tag data (no artist, no title) just skip it. too bad.
@@ -131,19 +146,19 @@ class MusicLibrary:
 		if not songTitle:
 			songTitle = u'[Unknown]'
 		
-		songGenre = unicode(songData['genre']).strip()
-		songAlbum = unicode(songData['album']).strip()
-		songDuration = unicode(songData['duration']).strip()
+		songGenre = songData['genre'].strip()
+		songAlbum = songData['album'].strip()
+		songDuration = long(songData['duration'].strip())
 		
 		songSortTitle = ''
 		if songData.has_key('sortTitle') and songData['sortTitle']:
-			songSortTitle = unicode(songData['sortTitle']).strip()
+			songSortTitle = songData['sortTitle'].strip()
 		if not songSortTitle:
 			songSortTitle = songTitle
 		
 		songSortArtist = ''
 		if songData.has_key('sortArtist') and songData['sortArtist']:
-			songSortArtist = unicode(songData['sortArtist']).strip()
+			songSortArtist = songData['sortArtist'].strip()
 		if not songSortArtist:
 			songSortArtist = songArtist
 		
@@ -153,13 +168,12 @@ class MusicLibrary:
 		# place song in the "byLetter" dictionary for quick and easy searching later
 		if songSortArtist != u'[Unknown]':
 			firstLetter = FirstAlphanumericChar(songSortArtist)
-		elif songSortTitle != u'[Unknown]':
+		else:
 			firstLetter = FirstAlphanumericChar(songSortTitle)
 		
-		if firstLetter:
-			if not firstLetter.isalpha():
-				firstLetter = '0'
-			self.byLetter[firstLetter].append(songID)
+		if not firstLetter.isalpha():
+			firstLetter = '0'
+		self.byLetter[firstLetter].append(songID)
 		
 		# place song in the "byArtist" dictionary to quick and easy searching later
 		if songArtist != u'[Unknown]':
