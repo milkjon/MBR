@@ -24,7 +24,7 @@
 					Is it possible to add the correct track in iTunes (with your little applescript) using this
 					Persistent ID instead of the regular Track ID??
 	
-	RESULT			?
+	RESULT		 	I *assume* I can use persistent ID very easily. Have not tried yet. Should be doable.	
 	
 	
 3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
