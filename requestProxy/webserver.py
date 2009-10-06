@@ -1,3 +1,4 @@
+#	vim: set tabstop=4 columns=120 shiftwidth=4:
 #----------------------------------------------------------------------------------------------------------------------#
 #	MBRadio
 #	webserver.py
@@ -5,6 +6,7 @@
 #	Implements the HTTP Request Server
 #
 #	Please set tab-width to 4 characters! Lines should be 120 characters wide.
+#
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
@@ -58,7 +60,8 @@ NewRequests = []
 
 def LoadConfig():
 	global Library, Config
-	
+	import platform
+
 	# which Library DB to use?  Currently the only acceptable option is "iTunes"
 	Config['Library'] = "iTunes"
 
@@ -66,11 +69,14 @@ def LoadConfig():
 	Config['Port'] = 15800
 
 	# directory for saving prefs and logs
-	# *Jonathan* this may need to be changed on the Mac
-	Config['AppDir'] = os.path.join(os.path.expanduser('~'), ".mbradio")
-
-	# iTunes DB location   *Jonathan* this will need to be changed for Mac
-	Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
+	isMac = 'Darwin' == platform.system() 
+	if isMac:
+		Config['AppDir'] = os.path.join(os.path.expanduser('~'), "Library/Application Support/MBRadio")
+		#Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
+		Config['iTunesDB'] = '/Users/Shared/iTunes/iTunes Music Library.xml'
+	else:
+		Config['AppDir'] = os.path.join(os.path.expanduser('~'), ".mbradio")
+		Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
 
 	# Max requests are enforced on sliding hour-long timeframe
 	Config['maxRequests_User'] = 10
