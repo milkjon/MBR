@@ -109,11 +109,12 @@
 	NSString *source = @"tell application \"iTunes\" to get persistent id of current track";
 	NSAppleScript* script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
 	NSString *ident = [[script executeAndReturnError: nil] stringValue];
-	NSLog(@"persistent identifer: %@", ident);
+	NSLog(@"Playing ID: %@", ident);
 	
 	// Make the http request
 	NSString *str = [NSString stringWithFormat: @"http://localhost:15800/now-playing?songid=%@", ident];
 	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
+	NSLog(result);
 }
 
 - (id) init
