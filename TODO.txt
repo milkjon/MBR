@@ -8,13 +8,12 @@
 #	TASK/STATUS		COMMENTS
 ------------------------------------------------------------------------------------------------------------------------
 1.	TO DO			Objc app needs to query the python proxy to get the list of new requests.
-					This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
+	(Jonathan)		This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
 	
-	STATUS			Incomplete		
-	
+	STATUS			Incomplete
 	
 2.	INVESTIGATE		I am concerned what happens in iTunes if new tracks are added to the library while the person
-					is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
+	(Erich)			is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
 					with new songs.
 					
 					However, I notice that there is a <key>Persistent ID</key> in the iTunes XML DB.
@@ -24,11 +23,11 @@
 					Is it possible to add the correct track in iTunes (with your little applescript) using this
 					Persistent ID instead of the regular Track ID??
 	
-	RESULT			?
-	
+	FOLLOWUP		As long as you can play the track from Applescript with the Persistent ID, let's do that.
+	(Erich)
 	
 3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
-					and python.
+	(Jonathan)		and python.
 					
 					*IDEA* Use one of those .plist files?  Both ObjC and Python can read those.
 					
@@ -45,20 +44,46 @@
 					app could send some kind of command to the proxy server like an HTTP GET request to
 						http://localhost:15800/reload-config/
 					whenever the config options are changed.
-						
+	
+	FOLLOWUP		I implemented the 'http://localhost:15800/reload-config' interface in python.
+	(Erich)
+	
+	TO DO			Once we decide how the configurations are stored, the corresponding code must be written in
+	(Erich)			the pythan script to read the config information.
+	
 	RESULT			?
 		
 		
 4a.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
 					currently playing?
 
-	RESULT			Yes, currently playing song can be queried from iTunes with Applescript.
+	FOLLOWUP		Yes, currently playing song can be queried from iTunes with Applescript.
+	(Jonathan)
+	
+	FOLLOWUP		Good. Let's implement this with a timer. Every X seconds, poll iTunes for the currently playing
+	(Erich)			song. If the song is different than the result of the previous poll, then the ObjC app will send
+					the SongID to the python server for recording and tracking via the 
+					'http://localhost:15800/now-playing?songid=X'  interface.
 
+	RESULT			?
 
 4b.	INVESTIGATE		Also, is there a way to pull from iTunes a list of tracks that have recently been played?
 					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
 					this information on the website.
 					
-	RESULT		    Last 10 tracks played may be doable with so called smart playlists. But it smells fishy. 
-					I have no idea if those can be created programmatically or not.
+	FOLLOWUP		Last 10 tracks played may be doable with so called smart playlists. But it smells fishy. 
+	(Jonathan)		I have no idea if those can be created programmatically or not.
 
+	FOLLOWUP		Let's ignore this for now, then. Instead, let's use the simple polling method that fires every X
+	(Erich)			seconds and pulls the "currently playing" song from iTunes. The ObjC app will report this
+					to the python server via the 'http://localhost:15800/now-playing?songid=X'  interface.  The python
+					app will maintain the list of "recently played songs" for querying. The played songs will be stored
+					in memory for the current session, and also logged to a file on the disk for statistics purposes
+					at a later time.
+
+	RESULT			?
+	
+5	TO DO			Implement the 'http://localhost:15800/now-playing?songid=X'  interface from the ObjC program.
+	(Jonathan)
+	
+	STATUS			Incomplete
