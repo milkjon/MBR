@@ -10,8 +10,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import string, cgi, time, urlparse, zlib, os.path, unicodedata, datetime, time, gc
-from os import curdir, sep
+import os.path, string, unicodedata, time, os, sys, urlparse, cgi, zlib, gc
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 # local imports
@@ -124,9 +123,6 @@ def LoadLibrary():
 global RequestCount
 RequestCount = 0
 
-global Terminate
-Terminate = False
-
 class MBRadio(BaseHTTPRequestHandler):
 	
 	def sendError(self, text = 'Server error', num = 500):
@@ -155,8 +151,8 @@ class MBRadio(BaseHTTPRequestHandler):
 		#  -----------------------------------------------------------
 		#	/new-requests			Locally				Query
 		#	/now-playing			Locally				Set
-		#	/reload-library			Locally				Set
-		#	/reload-config			Locally				Set
+		#	/reload-library			Locally				Action
+		#	/reload-config			Locally				Action
 		#	/set-config				Locally				Set
 		#	/terminate				Locally				Action
 		#	/search					Remote webserver	Query
@@ -227,7 +223,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			# package new requests as XML
 			packageStr =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 							'<requestlist count=\"' + str(len(orderedRequests)) + '\">\n' + \
-							string.join(map(lambda reqID: PackageRequest(reqID), orderedRequests), '\n') + \
+							string.join(map(PackageRequest, orderedRequests), '\n') + \
 							'</requestlist>'
 			
 			# send it back
@@ -263,11 +259,11 @@ class MBRadio(BaseHTTPRequestHandler):
 			if self.client_address[0] != Config['LocalHost']:
 				self.sendError('Unauthorized')
 				return
-
+			
 			if args is None or not args.has_key('songid') or not args['songid']:
 				self.sendError('Incomple query parameters: /now-playing?songid=X required')
 				return
-					
+			
 			try:
 				songID = args['songid'][0]
 				
@@ -411,8 +407,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/terminate':
 		
-			global Terminate
-			Terminate = True
+			sys.exit()
 			
 				
 		#-----------------------------------------------------------------------------------------------------------
@@ -593,7 +588,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<requestlist count=\"' + str(len(slicedRequestList)) + '\">\n' + \
-								string.join(map(lambda reqID: PackageRequest(reqID), slicedRequestList), '\n') + \
+								string.join(map(PackageRequest, slicedRequestList), '\n') + \
 								'</requestlist>'
 			
 			# gzip the results?
@@ -940,7 +935,7 @@ def PackageSonglist(songList, numResults, startingFrom):
 	packageStr =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 					'<songlist count=\"' + str(len(slicedList)) + '\" ' + 'total=\"' + str(len(songList)) + '\" ' + \
 					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n' + \
-					string.join(map(lambda song: PackageSong(song), slicedList), '\n') + \
+					string.join(map(PackageSong, slicedList), '\n') + \
 					'</songlist>'
 	
 	return packageStr
@@ -1150,24 +1145,22 @@ def LogSong(timePlayed, songID, requestID):
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
-	
-	global Terminate
+
 	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
-	LoadConfig()
-	LoadLibrary()
-	
 	try:
+		LoadConfig()
+		LoadLibrary()
+		
 		server = HTTPServer(('', Config['Port']), MBRadio)
 		Debug.out('Starting MBRadio Webserver')
-		while not Terminate:
-			server.handle_request()
-		
-	except KeyboardInterrupt:
+		server.serve_forever()
+	
+	except (KeyboardInterrupt, SystemExit):
 		Debug.out('^C received, shutting down server')
-		
-		server.socket.close()
-		
+
+	server.socket.close()
+	
 
 if __name__ == '__main__':
 	main()
