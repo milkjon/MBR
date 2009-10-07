@@ -67,6 +67,8 @@
 					Getting this information to the python server could be as simple as a call to an interface like
 					http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
 
+	FOLLOWUP		Yes. It just needs to be implemented. :) 
+	(Jon)		
 
 === Done
 
