@@ -5,6 +5,8 @@
 //  Created by Jonathan on 9/23/09.
 //
 
+// TODO : http requests off main thread
+
 #import "MBRAppDelegate.h"
 #import "MBTune.h"
 
@@ -38,6 +40,13 @@
 	[requests addObject: tune1];
 	[requests addObject: tune2];
 	[self didChangeValueForKey: kRequests];
+	
+	// Get playlists from iTunes
+	// Update Popup - button
+	// Select playlist that is saved to prefs.
+	
+	
+	
 }
 
 - (IBAction) add: (id) sender
@@ -104,7 +113,6 @@
 	
 	// parse the result and update the array
 	
-
 }
 
 - (void) querySong
@@ -125,8 +133,8 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 17 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
-		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 9 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
+		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
+		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 
 	}
 	return self;

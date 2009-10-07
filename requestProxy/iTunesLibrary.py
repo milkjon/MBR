@@ -24,6 +24,8 @@ class ParserData:
 	inTracklist = 0
 	inTrack = 0
 	inData = 0
+	inKind = 0
+	dontAddThisTrack = 0
 	key = ''
 	songData = {}
 	def resetSongData(self):
@@ -94,9 +96,14 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 			self.parser.inDict = 0
 
 			if self.parser.inTracklist and self.parser.inTrack:
-				self.addSong(self.parser.songData)
+				if not self.parser.dontAddThisTrack:
+					self.addSong(self.parser.songData)
+				self.parser.dontAddThisTrack = 0
 				self.parser.inTrack = 0
 				self.parser.key = ""
+		elif name == u'string':
+			if self.parser.inKind:
+				self.parser.inKind = 0
 				
 		self.parser.inData = 0
 	#enddef end_element()
@@ -104,7 +111,11 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	def char_data(self, data):
 		if self.parser.skipRest:
 			return
-			
+		
+		if self.parser.inKind:
+			if "video" in data or "stream" in data or "URL" in data:
+				self.parser.dontAddThisTrack = 1
+		
 		if self.parser.inKey:
 			if data == u'Playlists':
 				self.parser.skipRest = 1
@@ -119,6 +130,8 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 				if data == u'Track ID':
 					self.parser.inTrack = 1
 					self.parser.resetSongData()
+				elif data == u'Kind':
+					self.parser.inKind = 1
 					
 		#endif self.parser.inKey
 					
