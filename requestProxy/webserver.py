@@ -232,8 +232,6 @@ class MBRadio(BaseHTTPRequestHandler):
 			# clear the list?
 			if clear == 'yes':
 				NewRequests = []
-				
-			gc.collect()
 			
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/now-playing'      - LOCALHOST ONLY -
@@ -457,45 +455,48 @@ class MBRadio(BaseHTTPRequestHandler):
 				return
 			
 			searchBy = args['by'][0].lower()
-
+			searchFor = args['for'][0]
+			
 			if not searchBy in ['letter','artist','title','genre','any']:
 				self.sendError('Unknown search parameter by=' + searchBy)
 				return
-				
-			searchFor = args['for'][0]
 			
-			if args.has_key('results') and args['results']:
+			try:
 				numResults = int(args['results'][0])
-			else:
+				if numResults < 0:
+					numResults = 100
+			except:
 				numResults = 100
 				
-			if args.has_key('starting') and args['starting']:
-				startingFrom = int(args['starting'][0]) - 1
-			else:
+			try:
+				startingFrom = int(args['starting'][0])
+				if startingFrom < 0:
+					startingFrom = 0
+			except:
 				startingFrom = 0
 			
 			# convert sort string "field1-dir,field2-dir..." to list: [(field1,dir), (field2,dir), ...]
 			sortBy = []
 			if args.has_key('sort') and args['sort']:
-				sortStr = args['sort'][0].lower()
-				if sortStr.find('title') == -1:
-					sortStr += ',title=asc'
-				terms = [term.strip().partition('-') for term in sortStr.split(',')]
-				terms = [triplet for triplet in terms if triplet[0] in ['artist','title','album','genre']]
+				terms = [term.strip().partition('-') for term in args['sort'][0].lower().split(',')]
+				terms = [(field,dir) for (field,dummy,dir) in terms if field in ('artist','title','album','genre')]
 				
 				# remove duplicates, fill in empty sort directions
-				for field, dummy, dir in terms:
-					if not filter(lambda pair: pair[0]==field, sortBy):
-						if dir and dir in ['asc','desc']:
+				for field, dir in terms:
+					if not field in [f for (f,d) in sortBy]:
+						if dir in ('asc','desc'):
 							sortBy.append( (field,dir) )
 						else:
 							sortBy.append( (field,'asc') )
 			
 			if not sortBy:
 				sortBy = [('artist','asc'), ('title', 'asc')]
-			if len(sortBy) == 1 and sortBy[0][0] == 'genre':
-				sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
-
+			else:
+				if len(sortBy) == 1 and sortBy[0][0] == 'genre':
+					sortBy.extend( [('artist', 'asc'), ('title', 'asc')] )
+				if not 'title' in [f for (f,d) in sortBy]:
+					sortBy.append( ('title', 'asc') )
+			
 			# Execute the search on the music Library!
 			if searchBy == "letter":
 				resultSet = Library.searchBy_Letter(searchFor)
@@ -518,8 +519,27 @@ class MBRadio(BaseHTTPRequestHandler):
 			# the songID is returned as the last item in the tuple
 			sortedSongList = [tuple[len(tuple)-1] for tuple in songListToSort]
 			
-			# packages the results as XML
-			packagedResults = PackageSonglist(sortedSongList, numResults, startingFrom)
+			# sanitise the numResults & startingFrom
+			if startingFrom > len(sortedSongList):
+				startingFrom = len(sortedSongList)
+			
+			endingAt = startingFrom + numResults
+			if endingAt > len(sortedSongList):
+				endingAt = len(sortedSongList)
+			
+			last = endingAt - 1
+			if last < startingFrom:
+				last = startingFrom
+			
+			# take the appropriate slice:
+			slicedList = sortedSongList[startingFrom:endingAt]
+			
+			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<songlist count=\"' + str(len(slicedList)) + '\" ' + \
+									'total=\"' + str(len(sortedSongList)) + '\" ' + \
+									'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n' + \
+								string.join(map(PackageSong, slicedList), '\n') + \
+								'</songlist>'
 			contentType = 'text/xml'
 			
 			# gzip the results?
@@ -530,9 +550,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
-			
-			gc.collect()
-				
+
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/requests'
@@ -599,9 +617,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
-			
-			gc.collect()
-		
+
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/history'
@@ -667,8 +683,6 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
-			
-			gc.collect()
 			
 			
 		#-----------------------------------------------------------------------------------------------------------
@@ -881,7 +895,7 @@ class MBRadio(BaseHTTPRequestHandler):
 				Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
 				
 				# add request to Requests list
-				Requests[requestID] = dict( { 'songID': songID, 'time': requestTime, 'host': hostIP, \
+				Requests[requestID] =	dict( { 'songID': songID, 'time': requestTime, 'host': hostIP, \
 												'requestedBy': requestedBy, 'dedication': dedication } )
 
 				# add to NewRequests list
@@ -910,39 +924,6 @@ class MBRadio(BaseHTTPRequestHandler):
 #----------------------------------------------------------------------------------------------------------------------#
 #  Utility functions
 #----------------------------------------------------------------------------------------------------------------------#
-def PackageSonglist(songList, numResults, startingFrom):
-	# packages a list of songs in XML for transmission
-	# arugment(songList) should be a list of valid songID's from the library
-	
-	# sanitise the numResults & startingFrom
-	if not numResults or numResults < 0:
-		numResults = 100
-	if not startingFrom or startingFrom < 0:
-		startingFrom = 0
-	elif startingFrom > len(songList):
-		startingFrom = len(songList)
-	
-	endingAt = startingFrom + numResults
-	if endingAt > len(songList):
-		endingAt = len(songList)
-	
-	last = endingAt - 1
-	if last < 0:
-		last = 0
-	
-	# take the appropriate slice:
-	slicedList = songList[startingFrom:endingAt]
-	
-	packageStr =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
-					'<songlist count=\"' + str(len(slicedList)) + '\" ' + 'total=\"' + str(len(songList)) + '\" ' + \
-					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n' + \
-					string.join(map(PackageSong, slicedList), '\n') + \
-					'</songlist>'
-	
-	return packageStr
-	
-#enddef PackageSonglist
-
 def PackageSong(songID):
 	# packages the song info as an XML string
 	
@@ -1147,7 +1128,7 @@ def LogSong(timePlayed, songID, requestID):
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
 
-	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
+	gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
 	try:
 		LoadConfig()

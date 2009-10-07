@@ -41,10 +41,6 @@ def	String2SafeAsciiWordList(theString):
 	# split string into individual words using the .split() method
 	asciiWords = asciiStr.split()
 	
-	# escape the words for use in a regular expression search
-	#reEscapedWords = map(lambda word: re.escape(word), asciiWords)
-	
-	#del asciiWords
 	return asciiWords
 			
 #enddef	String2SafeAsciiWordList()
@@ -279,8 +275,7 @@ class MusicLibrary:
 					matchedSongs.extend(self.byArtist[artist])
 			
 			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
-			
-			del wordList
+
 			return matchedSongs
 
 		except:
@@ -314,8 +309,7 @@ class MusicLibrary:
 					matchedSongs.extend(self.byGenre[genre])
 			
 			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
-			
-			del wordList
+
 			return matchedSongs
 
 		except:
@@ -349,8 +343,7 @@ class MusicLibrary:
 					matchedSongs.append(songID)
 			
 			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
-			
-			del wordList
+
 			return matchedSongs
 			
 		except:
@@ -403,8 +396,7 @@ class MusicLibrary:
 			#endfor
 
 			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
-			
-			del wordList
+
 			return matchedSongs
 		
 		except:
