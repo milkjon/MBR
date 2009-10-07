@@ -115,7 +115,8 @@ def LoadLibrary():
 #  BaseHTTPServer implementation
 #----------------------------------------------------------------------------------------------------------------------#
 
-requestCount = 0
+global RequestCount
+RequestCount = 0
 
 class MBRadio(BaseHTTPRequestHandler):
 	
@@ -183,6 +184,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		Returns plain text:
 		#			'OK'			song recorded into history
 		#			'INVALID'		unable to find songID in the library
+		#			'DUPLICATE'		song is already the most recently reported 'now playing' song
 		#			'FAIL'			unknown error occured
 		#
 		#	/reload-library
@@ -425,12 +427,10 @@ class MBRadio(BaseHTTPRequestHandler):
 			clear = 'yes'
 			order = 'newest'
 			if not args is None:
-				if args.has_key('clear') and args['clear']:
-					if args['clear'][0] == 'yes' or args['clear'][0] == 'no':
-						clear = args['clear'][0]
-				if args.has_key('order') and args['order']: 
-					if args['order'][0] == 'newest' or args['order'][0] == 'oldest':
-						order = args['order'][0]
+				if args.has_key('clear') and args['clear'] and args['clear'][0] in ('yes','no'):
+					clear = args['clear'][0]
+				if args.has_key('order') and args['order'] and args['order'][0] in ('newest', 'oldest'):
+					order = args['order'][0]
 			
 			orderedRequests = list(NewRequests)
 			if order == 'newest':
@@ -474,14 +474,17 @@ class MBRadio(BaseHTTPRequestHandler):
 				song = Library.getSong(songID)
 				if song is None:
 					self.sendData('INVALID')
+					return
 				
 				theTime = long(time.time())
 				
-				# append if it's not already in the list
-				if not filter(lambda pair: pair[0]==songID, History):
-					History.append( (songID, theTime) )
-					LogSong(songID, theTime)
-				
+				# check that it's not already the most recent item in the list:
+				if History and History[len(History)-1] == songID:
+					self.sendData('DUPLICATE')
+					return
+
+				History.append( (songID, theTime) )
+				LogSong(songID, theTime)
 				self.sendData('OK')
 				
 			except:
@@ -679,7 +682,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					self.sendRequestError(700)
 					return
 					
-				global requestCount
+				global RequestCount
 				
 				songID = form['songID'][0]
 				hostIP = form['host'][0]
@@ -757,8 +760,8 @@ class MBRadio(BaseHTTPRequestHandler):
 					return
 				
 				# ok, all checks passed
-				requestCount = requestCount + 1
-				requestID = requestCount
+				RequestCount = RequestCount + 1
+				requestID = RequestCount
 				requestTime = long(time.time())
 				
 				# update Hosts list
