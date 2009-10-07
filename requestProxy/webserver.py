@@ -270,7 +270,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					return
 
 				# check that it's not already the most recent item in the list:
-				if History and History[len(History)-1][1] == songID:
+				if History and History[-1][1] == songID:
 					self.sendData('DUPLICATE')
 					return
 				
@@ -451,7 +451,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/search':
 
 			if not args or not args.has_key('by') or not args.has_key('for') or not args['by'] or not args['for']:
-				self.sendError('Incomple search parameters: /search/?for=X&by=Y required')
+				self.sendError('Incomple query parameters: /search/?for=X&by=Y required')
 				return
 			
 			searchBy = args['by'][0].lower()
@@ -514,10 +514,13 @@ class MBRadio(BaseHTTPRequestHandler):
 				return
 
 			# make a list of tuples to correctly sort the songs
+			t1 = time.time()
 			songListToSort = [MakeSortingTuple(songID, sortBy) for songID in resultSet]
 			songListToSort.sort()
 			# the songID is returned as the last item in the tuple
-			sortedSongList = [tuple[len(tuple)-1] for tuple in songListToSort]
+			sortedSongList = [tuple[-1] for tuple in songListToSort]
+			
+			Debug.out("  Sorted", len(sortedSongList),"in", round(time.time()-t1,6), "seconds")
 			
 			# sanitise the numResults & startingFrom
 			if startingFrom > len(sortedSongList):
@@ -581,7 +584,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/requests':
 			
 			if args is None or not args.has_key('results') or not args['results']:
-				self.sendError('Incomple query parameters')
+				self.sendError('Incomple query parameters:  /requests?results=X  required')
 				return
 			
 			# sort requests by timestamp desc:
@@ -651,14 +654,17 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/history':
 		
 			if args is None or not args.has_key('results') or not args['results']:
-				self.sendError('Incomple query parameters')
+				self.sendError('Incomple query parameters: /history?results=X required')
 				return
 			
 			# make a copy of the history list, then reverse it
 			historyList = list(History)
 			historyList.reverse()
 			
-			numResults = int(args['results'][0])
+			try:
+				numResults = int(args['results'][0])
+			except:
+				numResults = 1
 			if numResults <= 0:
 				numResults = 1
 			if numResults > len(historyList):
@@ -999,19 +1005,20 @@ def SafeAscii(theString):
 def MakeSortingTuple(songID, sortBy):
 	song = Library.getSong(songID)
 	if song is None:
-		return tuple(map(lambda x: None, range(len(sortBy)+1)))
+		return tuple([None for i in range(len(sortBy)+1)])
 	
 	sortList=[]
 	for field,dir in sortBy:
 		try:
 			if field == 'artist':
-				sortList.append(SafeAscii(song['sortArtist']).lower())
+				field = 'sortArtist'
 			elif field == 'title':
-				sortList.append(SafeAscii(song['sortTitle']).lower())
-			elif field == 'album':
-				sortList.append(SafeAscii(song['album']).lower())
-			elif field == 'genre':
-				sortList.append(SafeAscii(song['genre']).lower())
+				field = 'sortTitle'
+			
+			if not song[field] or song[field] == '[Unknown]':
+				sortList.append(chr(128))
+			else:
+				sortList.append(SafeAscii(song[field]).lower())
 		except:
 			pass
 			
@@ -1037,9 +1044,7 @@ def LogRequest(requestID):
 		requestLogFile = os.path.join(Config['LogDir'], "requests.xml")
 		if not os.path.isfile(requestLogFile):
 			f = open(requestLogFile, 'w')
-			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			f.write("<requestlog>\n") 
-			f.write("</requestlog>\n")
+			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<requestlog>\n</requestlog>\n")
 			f.close()
 	except:
 		Debug.out("Request log file does not exist, or file could not be created.")
@@ -1089,9 +1094,7 @@ def LogSong(timePlayed, songID, requestID):
 		
 		if not os.path.isfile(playedLogFile):
 			f = open(playedLogFile, 'w')
-			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			f.write("<historylog>\n") 
-			f.write("</historylog>\n")
+			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<historylog>\n</historylog>\n")
 			f.close()
 	except:
 		Debug.out("Played log file does not exist, or file could not be created.")
