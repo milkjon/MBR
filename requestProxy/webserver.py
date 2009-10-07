@@ -91,6 +91,7 @@ def LoadConfig():
 	# On windows, BaseHTTPRequestHandler.client_address[0] returns "127.0.0.1". May need to look into that.
 	Config['AllowedClients'] =	[ '127.0.0.1', 'localhost', \
 								  '67.205.28.237', 'bugsy.dreamhost.com' ]
+	Config['LocalHost'] = '127.0.0.1'
 	
 #enddef LoadConfig
 
@@ -142,175 +143,17 @@ class MBRadio(BaseHTTPRequestHandler):
 		#  HTTP GET requests are received by the server in the format /command/?var1=value&var2=value....
 		#---------------------------------------------------------------------------------------------------------------
 		#
-		#  Handled commands:
-		#
-		#	/new-requests
-		#
-		#		LOCALHOST ONLY
-		#
-		#		Command returns the current queue of song requests in XML format. Once the requests have been
-		#		retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
-		#
-		#		Query string parameters:
-		#			PARAM		TYPE		REQ?	DESCRIPTION
-		#			----------------------------------------------------------------------------------------------------
-		#			clear=		string		N		must be one of [yes|no]  (defaults to 'yes')
-		#			order=		string		N		must be one of [newest|oldest]  (defaults to 'newest')
-		#
-		#		Returns XML of the form:
-		#			<requestlist count="(count)">
-		#				<request id="(requestID)">
-		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
-		#					<song id="(songID)">
-		#						<artist></artist><title></title><album></album><genre></genre><duration></duration>
-		#					</song>
-		#				</request>
-		#				...
-		#			</requestlist>
-		#
-		#	/now-playing
-		#
-		#		LOCALHOST ONLY
-		#
-		#		Command tells the proxy program what the currently playing song is. This is used to record the history
-		#		of songs played on the radio. Needed because the website requests the currently playing song and 
-		#		playlist history from this program through the /history/ command.
-		#
-		#		Query string parameters:
-		#			PARAM		TYPE		REQ?	DESCRIPTION
-		#			----------------------------------------------------------------------------------------------------
-		#			songid=		string		Y		library ID of the song currently playing
-		#
-		#		Returns plain text:
-		#			'OK'			song recorded into history
-		#			'INVALID'		unable to find songID in the library
-		#			'DUPLICATE'		song is already the most recently reported 'now playing' song
-		#			'FAIL'			unknown error occured
-		#
-		#	/reload-library
-		#
-		#		LOCALHOST ONLY
-		#
-		#		Command instructs this program to reload the music library. This is necessary if the user adds new
-		#		songs to their library while DJing. Note, it is not adviseable to simply monitor the 'modified time'
-		#		of the iTunes XML file, since iTunes is constantly updating that file with other inconsequential data.
-		#
-		#		Query string parameters: (none)
-		#
-		#		Returns plain text:
-		#			'OK'	reload succeeded
-		#			'FAIL'	unknown error occured
-		#
-		#	/reload-config
-		#
-		#		LOCALHOST ONLY
-		#
-		#		Command instructs this program to reload the config file. This is necessary if the user changes config
-		#		options like "max requests per user per hour", etc.
-		#
-		#		Query string parameters: (none)
-		#
-		#		Returns plain text:
-		#			'OK'	reload succeeded
-		#			'FAIL'	unknown error occured
-		#
-		#	/search
-		#
-		#		This interface is used to search the library for songs. This request is only sent from the
-		#		radio station website to get the tracklist to allow users to request songs. It returns a list of
-		#		songs in XML format.
-		#
-		#		Query string parameters:
-		#			PARAM		TYPE	REQ?	DESCRIPTION
-		#			----------------------------------------------------------------------------------------------------
-		#			for=		string	 Y		a string literal to search for
-		#			by=			string	 Y		must be one of [letter|artist|title|genre|any]
-		#			sort=		string	 N		Must be a list in the format "field1-direction,field2-direction..."
-		#
-		#										field is one of (artist|title|album|genre)
-		#										direction is one of (asc|desc) - if unspecified, defaults to asc
-		#
-		#										If sort == "", defaults to "artist-asc,title-asc"
-		#										If sort == "genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
-		#										If sort != "", and does not include 'title', then the sort will
-		#											always be appended with sort+=",title-asc"
-		#
-		#										NOTE! At this time my implementation ignores the sort direction 
-		#										      directive until I can write some better sorting code. All sorts
-		#										      will be done ascending until then.
-		#
-		#			results=	integer	 N		the number of results to return  (defaults to 100)
-		#			starting=	integer	 N		For continuation of search results, return songs starting at
-		#										result #X (defaults to 0)
-		#			compress=	string	 N		If compress == "", don't compress.
-		#										If compress == "gzip", return results gzip'ed
-		#
-		#		Returns XML of the form:
-		#			<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
-		#				<song id="(songID)">
-		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
-		#				</song>
-		#				...
-		#			</songlist>
-		#
-		#	/requests
-		#
-		#		This interface is used to get a list of recent requests to display on the website.
-		#		Requests are always returned in descending order by the time the request was made.
-		#
-		#		Query string parameters:
-		#			PARAM		TYPE			REQ?	DESCRIPTION
-		#			----------------------------------------------------------------------------------------------------
-		#			results=	string|integer	Y		if results=='all', returns all requests
-		#												if results==X, where X is an integer, returns the most recent X
-		#													requests made to the server
-		#			compress=	string	 		N		If compress == "", don't compress.
-		#												If compress == "gzip", return results gzip'ed
-		#
-		#		Returns XML of the form: 
-		#			<requestlist count="(count)">
-		#				<request id="(requestID)">
-		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
-		#					<song id="(songID)">
-		#						<artist></artist><title></title><album></album><genre></genre><duration></duration>
-		#					</song>
-		#				</request>
-		#				...
-		#			</requestlist>
-		#
-		#	/history
-		#
-		#		This interface is used to get a list of recently played songs to display on the website.
-		#		History results are always returned in descending order by the time the song was played.
-		#
-		#		Query string parameters:
-		#			PARAM		TYPE			REQ?	DESCRIPTION
-		#			----------------------------------------------------------------------------------------------------
-		#			results=	string|integer	Y		if results=='all', returns all requests
-		#												if results==X, where X is an integer, returns the most recent X
-		#													requests made to the server
-		#			compress=	string	 		N		If compress == "", don't compress.
-		#												If compress == "gzip", return results gzip'ed
-		#
-		#		Returns XML of the form: 
-		#			<historylist count="(count)">
-		#				<played time="(time)">
-		#					<song id="(songID)">
-		#						<artist></artist><title></title><album></album><genre></genre><duration></duration>
-		#					</song>
-		#				</played>
-		#				...
-		#			</historylist>
-		#
-		#	/time
-		#
-		#		Returns the local time on the DJ's computer. Needed for certain things on the server.
-		#
-		#		Query string parameters: (none)
-		#
-		#		Returns XML of the form:
-		#			<time>(current local time)</time>
-		#
+		#  Handled commands			Used				Type
+		#  -----------------------------------------------------------
+		#	/new-requests			Locally				Query
+		#	/now-playing			Locally				Set
+		#	/reload-library			Locally				Set
+		#	/reload-config			Locally				Set
+		#	/set-config				Locally				Set
+		#	/search					Remote webserver	Query
+		#	/requests				Remote webserver	Query
+		#	/history				Remote webserver	Query
+		#	/time					Remote webserver	Query
 		#---------------------------------------------------------------------------------------------------------------
 		
 		# is the client in the list of allowed clients?
@@ -321,7 +164,6 @@ class MBRadio(BaseHTTPRequestHandler):
 		
 		# split the request into the "file name" and the "query string"
 		command, sepChar, queryStr = self.path.partition('?')
-		
 		if command.endswith('/'):
 			command = command[0:len(command)-1]
 		
@@ -332,6 +174,43 @@ class MBRadio(BaseHTTPRequestHandler):
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/search'
+		#
+		#	This interface is used to search the library for songs. This request is only sent from the
+		#	radio station website to get the tracklist to allow users to request songs. It returns a list of
+		#	songs in XML format.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE	REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		for=		string	 Y		a string literal to search for
+		#		by=			string	 Y		must be one of [letter|artist|title|genre|any]
+		#		sort=		string	 N		Must be a list in the format "field1-direction,field2-direction..."
+		#
+		#									field is one of (artist|title|album|genre)
+		#									direction is one of (asc|desc) - if unspecified, defaults to asc
+		#
+		#									If sort == "", defaults to "artist-asc,title-asc"
+		#									If sort == "genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#									If sort != "", and does not include 'title', then the sort will
+		#										always be appended with sort+=",title-asc"
+		#
+		#									NOTE! At this time my implementation ignores the sort direction 
+		#										  directive until I can write some better sorting code. All sorts
+		#									      will be done ascending until then.
+		#
+		#		results=	integer	 N		the number of results to return  (defaults to 100)
+		#		starting=	integer	 N		For continuation of search results, return songs starting at
+		#										result #X (defaults to 0)
+		#		compress=	string	 N		If compress == "", don't compress.
+		#									If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form:
+		#		<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
+		#			<song id="(songID)">
+		#				<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#			</song>
+		#			...
+		#		</songlist>
 		#-----------------------------------------------------------------------------------------------------------
 		if command == '/search':
 
@@ -395,11 +274,14 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.sendError('Search error occurred')
 				return
 
-			# sort the results
-			resultSet = SortSonglist(resultSet,sortBy)
+			# make a list of tuples to correctly sort the songs
+			songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), resultSet)
+			songListToSort.sort()
+			# the songID is returned as the last item in the tuple
+			sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
 			
 			# packages the results as XML
-			packagedResults = PackageSonglist(resultSet, numResults, startingFrom)
+			packagedResults = PackageSonglist(sortedSongList, numResults, startingFrom)
 			contentType = 'text/xml'
 			
 			# gzip the results?
@@ -414,13 +296,33 @@ class MBRadio(BaseHTTPRequestHandler):
 			gc.collect()
 				
 		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/new-requests'
+		#  command == '/new-requests'     - LOCALHOST ONLY -
+		#
+		#	Command returns the current queue of song requests in XML format. Once the requests have been
+		#	retreived, the queue is emptied. (unless the 'clear' parameter is set to 'no')
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE		REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		clear=		string		N		must be one of [yes|no]  (defaults to 'yes')
+		#		order=		string		N		must be one of [newest|oldest]  (defaults to 'newest')
+		#
+		#	Returns XML of the form:
+		#		<requestlist count="(count)">
+		#			<request id="(requestID)">
+		#				<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
+		#			</request>
+		#			...
+		#		</requestlist>
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/new-requests':
 			global NewRequests
 			
 			# only answer requests from the localhost
-			if self.client_address[0] != '127.0.0.1':
+			if self.client_address[0] != Config['LocalHost']:
 				self.sendError('Unauthorized')
 				return
 			
@@ -437,13 +339,10 @@ class MBRadio(BaseHTTPRequestHandler):
 				orderedRequests.reverse()
 
 			# package new requests as XML
-			packageStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-							'<requestlist count=\"' + str(len(orderedRequests)) + '\">\n'
-
-			for requestID in orderedRequests:
-				packageStr = packageStr + PackageRequest(requestID)
-				
-			packageStr = packageStr + '</requestlist>'
+			packageStr =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+							'<requestlist count=\"' + str(len(orderedRequests)) + '\">\n' + \
+							string.join(map(lambda reqID: PackageRequest(reqID), orderedRequests), '\n') + \
+							'</requestlist>'
 			
 			# send it back
 			self.sendData(packageStr, 'text/xml')
@@ -455,12 +354,27 @@ class MBRadio(BaseHTTPRequestHandler):
 			gc.collect()
 			
 		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/now-playing'
+		#  command == '/now-playing'      - LOCALHOST ONLY -
+		#
+		#	Tells the proxy program what the currently playing song is. This is used to record the history
+		#	of songs played on the radio. Needed because the website requests the currently playing song and 
+		#	playlist history from this program through the /history/ command.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE		REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		songid=		string		Y		library ID of the song currently playing
+		#
+		#	Returns plain text:
+		#		'OK'			song recorded into history
+		#		'INVALID'		unable to find songID in the library
+		#		'DUPLICATE'		song is already the most recently reported 'now playing' song
+		#		'FAIL'			unknown error occured
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/now-playing':
 			
 			# only answer requests from the localhost
-			if self.client_address[0] != '127.0.0.1':
+			if self.client_address[0] != Config['LocalHost']:
 				self.sendError('Unauthorized')
 				return
 
@@ -475,14 +389,13 @@ class MBRadio(BaseHTTPRequestHandler):
 				if song is None:
 					self.sendData('INVALID')
 					return
-				
-				theTime = long(time.time())
-				
+
 				# check that it's not already the most recent item in the list:
 				if History and History[len(History)-1] == songID:
 					self.sendData('DUPLICATE')
 					return
-
+				
+				theTime = long(time.time())
 				History.append( (songID, theTime) )
 				LogSong(songID, theTime)
 				self.sendData('OK')
@@ -492,6 +405,29 @@ class MBRadio(BaseHTTPRequestHandler):
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/requests'
+		#
+		#	This interface is used to get a list of recent requests to display on the website.
+		#	Requests are always returned in descending order by the time the request was made.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		results=	string|integer	Y		if results=='all', returns all requests
+		#											if results==X, where X is an integer, returns the most recent X
+		#												requests made to the server
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form: 
+		#		<requestlist count="(count)">
+		#			<request id="(requestID)">
+		#				<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
+		#			</request>
+		#			...
+		#		</requestlist>
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/requests':
 			
@@ -520,12 +456,9 @@ class MBRadio(BaseHTTPRequestHandler):
 			# package the requests as XML
 			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
-								'<requestlist count=\"' + str(len(slicedRequestList)) + '\">\n'
-
-			for requestID in slicedRequestList:
-				packagedResults = packagedResults + PackageRequest(requestID)
-				
-			packagedResults = packagedResults + '</requestlist>'
+								'<requestlist count=\"' + str(len(slicedRequestList)) + '\">\n' + \
+								string.join(map(lambda reqID: PackageRequest(reqID), slicedRequestList), '\n') + \
+								'</requestlist>'
 			
 			# gzip the results?
 			if args.has_key('compress') and args['compress']:
@@ -540,17 +473,35 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/time'
+		#
+		#	Returns the local time on the DJ's computer. Needed for certain things on the server.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns XML of the form:
+		#			<time>(current local time)</time>
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/time':
 		
 			self.sendData('<time>' + time.ctime() + '</time>', 'text/xml')
 		
+		
 		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/reload-library'
+		#  command == '/reload-library'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to reload the music library. This is necessary if the user adds new
+		#	songs to their library while DJing. Note, it is not adviseable to simply monitor the 'modified time'
+		#	of the iTunes XML file, since iTunes is constantly updating that file with other inconsequential data.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns plain text:
+		#		'OK'	reload succeeded
+		#		'FAIL'	unknown error occured
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/reload-library':
 			# only answer requests from the localhost
-			if self.client_address[0] != '127.0.0.1':
+			if self.client_address[0] != Config['LocalHost']:
 				self.sendError('Unauthorized')
 				return
 			
@@ -561,11 +512,20 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.sendData('FAIL')
 
 		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/reload-config'
+		#  command == '/reload-config'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to reload the config file. This is necessary if the user changes config
+		#	options like "max requests per user per hour", etc.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns plain text:
+		#		'OK'	reload succeeded
+		#		'FAIL'	unknown error occured
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/reload-config':
 			# only answer requests from the localhost
-			if self.client_address[0] != '127.0.0.1':
+			if self.client_address[0] != Config['LocalHost']:
 				self.sendError('Unauthorized')
 				return
 				
@@ -574,7 +534,34 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.sendData('OK')
 			except:
 				self.sendData('FAIL')
+				
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/history'
+		#
+		#	This interface is used to get a list of recently played songs to display on the website.
+		#	History results are always returned in descending order by the time the song was played.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		results=	integer			Y		if results==X, where X is an integer, returns the most recent X
+		#												songs in the history list
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form: 
+		#		<historylist count="(count)">
+		#			<played time="(time)">
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
+		#			</played>
+		#			...
+		#		</historylist>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/history':
 		
+			
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command unknown!
@@ -609,13 +596,12 @@ class MBRadio(BaseHTTPRequestHandler):
 			message = "Server Error"
 			code = 700
 			
-		response = '''<?xml version="1.0" encoding="UTF-8"?>
-					<request>
-						<application><apptype>MBRadio Server</apptype><version>1.0</version></application>
-						<status><code>''' + str(code) + '</code><message>' + message + '</message></status></request>'
+		response =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+					'<request><application><apptype>MBRadio Server</apptype><version>1.0</version></application>' + \
+					'<status><code>' + str(code) + '</code><message>' + message + '</message></status></request>'
 
 		self.sendData(response, 'text/xml')
-		return
+
 	#enddef sendRequestError
 	
 	
@@ -666,10 +652,15 @@ class MBRadio(BaseHTTPRequestHandler):
 		#---------------------------------------------------------------------------------------------------------------
 	
 		try:
-		
+			
+			# is the client in the list of allowed clients?
+			if not (self.client_address[0] in Config['AllowedClients'] \
+					or self.address_string() in Config['AllowedClients']):
+				self.sendError('Unauthorized')
+				return
+			
 			# split the request into the "file name" and the "query string"
 			command, sepChar, queryStr = self.path.partition('?')
-			
 			if command.endswith('/'):
 				command = command[0:len(command)-1]
 			
@@ -687,15 +678,13 @@ class MBRadio(BaseHTTPRequestHandler):
 				songID = form['songID'][0]
 				hostIP = form['host'][0]
 				
+				requestedBy = ''
 				if form.has_key('requestedBy') and form['requestedBy']:
 					requestedBy = form['requestedBy'][0].strip()
-				else:
-					requestedBy = ''
-					
+				
+				dedication = ''
 				if form.has_key('dedication') and form['dedication']:
 					dedication = form['dedication'][0].strip()
-				else:
-					dedication = ''
 				
 				# is it a valid song?
 				requestedSong = Library.getSong(songID)
@@ -703,7 +692,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					self.sendRequestError(703)
 					return
 
-				# lookup in Hosts dict
+				# lookup in Hosts dict. if it doesn't exist, add an entry
 				if not Hosts.has_key(hostIP):
 					Hosts[hostIP] = { 'requests': [], 'banned': 0 }
 				
@@ -715,13 +704,14 @@ class MBRadio(BaseHTTPRequestHandler):
 				curTime = time.time()
 				oneHourAgo = curTime - (60 * 60)  # 1 hour = 60 minutes = 60 * 60 seconds
 				tenMinAgo = curTime - (10 * 60)   # 10 mins = 10 * 60 seconds
+				
 				# check if the host request limit has been met:
 				requestsInLastHour = 0
 				requestedSongInLast10Minutes = 0
 				for r in Hosts[hostIP]['requests']:
 					if r['time'] >= oneHourAgo:
 						requestsInLastHour += 1
-						
+
 					if r['time'] >= tenMinAgo:
 						if r['songID'] == songID:
 							requestedSongInLast10Minutes += 1
@@ -778,18 +768,17 @@ class MBRadio(BaseHTTPRequestHandler):
 				LogRequest(requestID)
 
 				# send a response back in XML
-				response = '''<?xml version="1.0" encoding="UTF-8"?>
-							<request><application><apptype>MBRadio</apptype><version>1.0</version></application>
-							<status><code>200</code><message>Request Received</message>
-							<requestID>''' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
+				response = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+							'<request><application><apptype>MBRadio</apptype><version>1.0</version></application>' + \
+							'<status><code>200</code><message>Request Received</message>' + \
+							'<requestID>' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
 				
 				self.sendData(response, 'text/xml')
-				return
 			
 			#endif command == '/req'
 			
 		except :
-			pass
+			self.sendError('Unknown server error')
 			
 	#enddef do_POST
 
@@ -803,9 +792,9 @@ def PackageSonglist(songList, numResults, startingFrom):
 	# arugment(songList) should be a list of valid songID's from the library
 	
 	# sanitise the numResults & startingFrom
-	if numResults is None or numResults < 0:
+	if not numResults or numResults < 0:
 		numResults = 100
-	if startingFrom is None or startingFrom < 0:
+	if not startingFrom or startingFrom < 0:
 		startingFrom = 0
 	elif startingFrom > len(songList):
 		startingFrom = len(songList)
@@ -821,14 +810,11 @@ def PackageSonglist(songList, numResults, startingFrom):
 	# take the appropriate slice:
 	slicedList = songList[startingFrom:endingAt]
 	
-	packageStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+	packageStr =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 					'<songlist count=\"' + str(len(slicedList)) + '\" ' + 'total=\"' + str(len(songList)) + '\" ' + \
-					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n'
-	
-	for song in slicedList:
-		packageStr = packageStr + PackageSong(song)
-		
-	packageStr = packageStr + '</songlist>'
+					'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n' + \
+					string.join(map(lambda song: PackageSong(song), slicedList), '\n') + \
+					'</songlist>'
 	
 	return packageStr
 	
@@ -846,7 +832,7 @@ def PackageSong(songID):
 					'<title>' + SafeXML(song['title']) + '</title>' + \
 					'<album>' + SafeXML(song['album']) + '</album>' + \
 					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
-					'<duration>' +str(song['duration']) + '</duration></song>\n'
+					'<duration>' +str(song['duration']) + '</duration></song>'
 
 	return packageStr
 	
@@ -867,7 +853,7 @@ def PackageRequest(requestID):
 					'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
 					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
 					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
-					PackageSong(reqInfo['songID']) + '</request>\n'
+					PackageSong(reqInfo['songID']) + '</request>'
 
 	return packageStr
 	
@@ -905,18 +891,9 @@ def MakeSortingTuple(songID, sortBy):
 
 #enddef MakeSortingTuple
 
-def SortSonglist(songList, sortBy):
-
-	# make a list of tuples to correctly sort the songs
-	songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), songList)
-	# sort!
-	songListToSort.sort()
-	# the songID is returned as the last item in the tuple
-	sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
-
-	return sortedSongList
-	
-#enddef SortSonglist
+#----------------------------------------------------------------------------------------------------------------------#
+#  Logging Functions
+#----------------------------------------------------------------------------------------------------------------------#
 
 def LogRequest(requestID):
 	
@@ -986,6 +963,7 @@ def LogRequest(requestID):
 	gc.collect()
 
 #enddef LogRequest
+
 
 def LogSong(songID, timePlayed):
 
