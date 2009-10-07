@@ -57,7 +57,9 @@ History = []
 def LoadConfig():
 	global Library, Config
 	import platform
-
+	
+	Debug.out("Loading Config...")
+	
 	# which Library DB to use?  Currently the only acceptable option is "iTunes"
 	Config['Library'] = "iTunes"
 
@@ -122,6 +124,9 @@ def LoadLibrary():
 global RequestCount
 RequestCount = 0
 
+global Terminate
+Terminate = False
+
 class MBRadio(BaseHTTPRequestHandler):
 	
 	def sendError(self, text = 'Server error', num = 500):
@@ -153,6 +158,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#	/reload-library			Locally				Set
 		#	/reload-config			Locally				Set
 		#	/set-config				Locally				Set
+		#	/terminate				Locally				Action
 		#	/search					Remote webserver	Query
 		#	/requests				Remote webserver	Query
 		#	/history				Remote webserver	Query
@@ -176,129 +182,6 @@ class MBRadio(BaseHTTPRequestHandler):
 		#try:
 		
 		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/search'
-		#
-		#	This interface is used to search the library for songs. This request is only sent from the
-		#	radio station website to get the tracklist to allow users to request songs. It returns a list of
-		#	songs in XML format.
-		#
-		#	Query string parameters:
-		#		PARAM		TYPE	REQ?	DESCRIPTION
-		#		----------------------------------------------------------------------------------------------------
-		#		for=		string	 Y		a string literal to search for
-		#		by=			string	 Y		must be one of [letter|artist|title|genre|any]
-		#		sort=		string	 N		Must be a list in the format "field1-direction,field2-direction..."
-		#
-		#									field is one of (artist|title|album|genre)
-		#									direction is one of (asc|desc) - if unspecified, defaults to asc
-		#
-		#									If sort == "", defaults to "artist-asc,title-asc"
-		#									If sort == "genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
-		#									If sort != "", and does not include 'title', then the sort will
-		#										always be appended with sort+=",title-asc"
-		#
-		#									NOTE! At this time my implementation ignores the sort direction 
-		#										  directive until I can write some better sorting code. All sorts
-		#									      will be done ascending until then.
-		#
-		#		results=	integer	 N		the number of results to return  (defaults to 100)
-		#		starting=	integer	 N		For continuation of search results, return songs starting at
-		#										result #X (defaults to 0)
-		#		compress=	string	 N		If compress == "", don't compress.
-		#									If compress == "gzip", return results gzip'ed
-		#
-		#	Returns XML of the form:
-		#		<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
-		#			<song id="(songID)">
-		#				<artist></artist><title></title><album></album><genre></genre><duration></duration>
-		#			</song>
-		#			...
-		#		</songlist>
-		#-----------------------------------------------------------------------------------------------------------
-		if command == '/search':
-
-			if not args or not args.has_key('by') or not args.has_key('for') or not args['by'] or not args['for']:
-				self.sendError('Incomple search parameters: /search/?for=X&by=Y required')
-				return
-			
-			searchBy = args['by'][0].lower()
-
-			if not searchBy in ['letter','artist','title','genre','any']:
-				self.sendError('Unknown search parameter by=' + searchBy)
-				return
-				
-			searchFor = args['for'][0]
-			
-			if args.has_key('results') and args['results']:
-				numResults = int(args['results'][0])
-			else:
-				numResults = 100
-				
-			if args.has_key('starting') and args['starting']:
-				startingFrom = int(args['starting'][0]) - 1
-			else:
-				startingFrom = 0
-			
-			# convert sort string "field1-dir,field2-dir..." to list: [(field1,dir), (field2,dir), ...]
-			sortBy = []
-			if args.has_key('sort') and args['sort']:
-				sortStr = args['sort'][0].lower()
-				if sortStr.find('title') == -1:
-					sortStr += ',title=asc'
-				terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), sortStr.split(',')))
-				terms = filter(lambda triplet: triplet[0] in ['artist','title','album','genre'], terms)
-				
-				# remove duplicates, fill in empty sort directions
-				for field, dummy, dir in terms:
-					if not filter(lambda pair: pair[0]==field, sortBy):
-						if dir and dir in ['asc','desc']:
-							sortBy.append( (field,dir) )
-						else:
-							sortBy.append( (field,'asc') )
-			
-			if not sortBy:
-				sortBy = [('artist','asc'), ('title', 'asc')]
-			if len(sortBy) == 1 and sortBy[0][0] == 'genre':
-				sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
-
-			# Execute the search on the music Library!
-			if searchBy == "letter":
-				resultSet = Library.searchBy_Letter(searchFor)
-			elif searchBy == "artist":
-				resultSet = Library.searchBy_Artist(searchFor)
-			elif searchBy == "genre":
-				resultSet = Library.searchBy_Genre(searchFor)
-			elif searchBy == "title":
-				resultSet = Library.searchBy_Title(searchFor)
-			elif searchBy == "any":
-				resultSet = Library.searchBy_Any(searchFor)
-				
-			if resultSet is None:
-				self.sendError('Search error occurred')
-				return
-
-			# make a list of tuples to correctly sort the songs
-			songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), resultSet)
-			songListToSort.sort()
-			# the songID is returned as the last item in the tuple
-			sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
-			
-			# packages the results as XML
-			packagedResults = PackageSonglist(sortedSongList, numResults, startingFrom)
-			contentType = 'text/xml'
-			
-			# gzip the results?
-			if args.has_key('compress') and args['compress']:
-				if args['compress'][0].lower() == 'gzip':
-					contentType = 'application/x-gzip'
-					packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
-			
-			gc.collect()
-				
-		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/new-requests'     - LOCALHOST ONLY -
 		#
 		#	Command returns the current queue of song requests in XML format. Once the requests have been
@@ -321,7 +204,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#			...
 		#		</requestlist>
 		#-----------------------------------------------------------------------------------------------------------
-		elif command == '/new-requests':
+		if command == '/new-requests':
 			global NewRequests
 			
 			# only answer requests from the localhost
@@ -416,6 +299,247 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.sendData('FAIL')
 		
 		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/reload-library'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to reload the music library. This is necessary if the user adds new
+		#	songs to their library while DJing. Note, it is not adviseable to simply monitor the 'modified time'
+		#	of the iTunes XML file, since iTunes is constantly updating that file with other inconsequential data.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns plain text:
+		#		'OK'	reload succeeded
+		#		'FAIL'	unknown error occured
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/reload-library':
+			# only answer requests from the localhost
+			if self.client_address[0] != Config['LocalHost']:
+				self.sendError('Unauthorized')
+				return
+			
+			try:
+				LoadLibrary()
+				self.sendData('OK')
+			except:
+				self.sendData('FAIL')
+
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/reload-config'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to reload the config file. This is necessary if the user changes config
+		#	options like "max requests per user per hour", etc.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns plain text:
+		#		'OK'	reload succeeded
+		#		'FAIL'	unknown error occured
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/reload-config':
+			# only answer requests from the localhost
+			if self.client_address[0] != Config['LocalHost']:
+				self.sendError('Unauthorized')
+				return
+				
+			try:
+				LoadConfig()
+				self.sendData('OK')
+			except:
+				self.sendData('FAIL')
+				
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/set-config'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to update a config option.
+		#
+		#	Query string parameters:
+		#		Given a query string in the format 'configOpt1=value1&configOpt2=value2...'
+		#		'configOptX' must be a valid entry in the Config dict
+		#			For each 'configOptX=valueX' pair specified, the following command is issued:
+		#				Config[configOptX] = valueX
+		#			If 'valueX' appears to be a number (isnumeric() returns true) it will be converted into a long
+		#
+		#		Example:  /set-config?maxRequests_User=20&maxRequests_Artist=10
+		#		Example:  /set-config?iTunesDB=/some/new/path/iTunes Music Library.xml
+		#
+		#		NOTE! No other checking is done to make sure the value set is of the right type or makes any sense
+		#		      for the specified config option. This interface is something of a hack - use it correctly and
+		#		      everything should be fine :)
+		#
+		#	Returns plain text:
+		#		'OK'		config option changed
+		#		'INVALID'	invalid entry in Config dict
+		#		'FAIL'		unknown error occured
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/set-config':
+			# only answer requests from the localhost
+			if self.client_address[0] != Config['LocalHost']:
+				self.sendError('Unauthorized')
+				return
+				
+			try:
+				for configOpt in args.keys():
+					if not Config.has_key(configOpt):
+						self.sendData('INVALID')
+						return
+	
+					val = args[configOpt][0]
+					try:
+						valUCStr = unicode(val)
+						if valUCStr.isnumeric():
+							val = long(valUCStr)
+					except:
+						pass
+					
+					Config[configOpt] = val
+					Debug.out("Set config opt:", configOpt,"=",val)
+				#endfor
+				
+				self.sendData('OK')
+				
+			except:
+				self.sendData('FAIL')
+				
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/terminate'      - LOCALHOST ONLY -
+		#
+		#	Instructs this program to terminate the webserver
+		#
+		#	Query string parameters: none
+		#
+		#	Returns: nothing
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/terminate':
+		
+			global Terminate
+			Terminate = True
+			
+				
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/search'
+		#
+		#	This interface is used to search the library for songs. This request is only sent from the
+		#	radio station website to get the tracklist to allow users to request songs. It returns a list of
+		#	songs in XML format.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE	REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		for=		string	 Y		a string literal to search for
+		#		by=			string	 Y		must be one of [letter|artist|title|genre|any]
+		#		sort=		string	 N		Must be a list in the format "field1-direction,field2-direction..."
+		#
+		#									field is one of (artist|title|album|genre)
+		#									direction is one of (asc|desc) - if unspecified, defaults to asc
+		#
+		#									If sort == "", defaults to "artist-asc,title-asc"
+		#									If sort == "genre-[dir]", defaults to "genre-[dir],artist-asc,title-asc"
+		#									If sort != "", and does not include 'title', then the sort will
+		#										always be appended with sort+=",title-asc"
+		#
+		#									NOTE! At this time my implementation ignores the sort direction 
+		#										  directive until I can write some better sorting code. All sorts
+		#									      will be done ascending until then.
+		#
+		#		results=	integer	 N		the number of results to return  (defaults to 100)
+		#		starting=	integer	 N		For continuation of search results, return songs starting at
+		#										result #X (defaults to 0)
+		#		compress=	string	 N		If compress == "", don't compress.
+		#									If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form:
+		#		<songlist count="(count)" total="(all songs found)" first="(first result)" last="(last result)">
+		#			<song id="(songID)">
+		#				<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#			</song>
+		#			...
+		#		</songlist>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/search':
+
+			if not args or not args.has_key('by') or not args.has_key('for') or not args['by'] or not args['for']:
+				self.sendError('Incomple search parameters: /search/?for=X&by=Y required')
+				return
+			
+			searchBy = args['by'][0].lower()
+
+			if not searchBy in ['letter','artist','title','genre','any']:
+				self.sendError('Unknown search parameter by=' + searchBy)
+				return
+				
+			searchFor = args['for'][0]
+			
+			if args.has_key('results') and args['results']:
+				numResults = int(args['results'][0])
+			else:
+				numResults = 100
+				
+			if args.has_key('starting') and args['starting']:
+				startingFrom = int(args['starting'][0]) - 1
+			else:
+				startingFrom = 0
+			
+			# convert sort string "field1-dir,field2-dir..." to list: [(field1,dir), (field2,dir), ...]
+			sortBy = []
+			if args.has_key('sort') and args['sort']:
+				sortStr = args['sort'][0].lower()
+				if sortStr.find('title') == -1:
+					sortStr += ',title=asc'
+				terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), sortStr.split(',')))
+				terms = filter(lambda triplet: triplet[0] in ['artist','title','album','genre'], terms)
+				
+				# remove duplicates, fill in empty sort directions
+				for field, dummy, dir in terms:
+					if not filter(lambda pair: pair[0]==field, sortBy):
+						if dir and dir in ['asc','desc']:
+							sortBy.append( (field,dir) )
+						else:
+							sortBy.append( (field,'asc') )
+			
+			if not sortBy:
+				sortBy = [('artist','asc'), ('title', 'asc')]
+			if len(sortBy) == 1 and sortBy[0][0] == 'genre':
+				sortBy.expand( [('artist', 'asc'), ('title', 'asc')] )
+
+			# Execute the search on the music Library!
+			if searchBy == "letter":
+				resultSet = Library.searchBy_Letter(searchFor)
+			elif searchBy == "artist":
+				resultSet = Library.searchBy_Artist(searchFor)
+			elif searchBy == "genre":
+				resultSet = Library.searchBy_Genre(searchFor)
+			elif searchBy == "title":
+				resultSet = Library.searchBy_Title(searchFor)
+			elif searchBy == "any":
+				resultSet = Library.searchBy_Any(searchFor)
+				
+			if resultSet is None:
+				self.sendError('Search error occurred')
+				return
+
+			# make a list of tuples to correctly sort the songs
+			songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), resultSet)
+			songListToSort.sort()
+			# the songID is returned as the last item in the tuple
+			sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
+			
+			# packages the results as XML
+			packagedResults = PackageSonglist(sortedSongList, numResults, startingFrom)
+			contentType = 'text/xml'
+			
+			# gzip the results?
+			if args.has_key('compress') and args['compress']:
+				if args['compress'][0].lower() == 'gzip':
+					contentType = 'application/x-gzip'
+					packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
+			
+			gc.collect()
+				
+		
+		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/requests'
 		#
 		#	This interface is used to get a list of recent requests to display on the website.
@@ -482,71 +606,8 @@ class MBRadio(BaseHTTPRequestHandler):
 			self.sendData(packagedResults, contentType)
 			
 			gc.collect()
-			
-		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/time'
-		#
-		#	Returns the local time on the DJ's computer. Needed for certain things on the server.
-		#
-		#	Query string parameters: (none)
-		#
-		#	Returns XML of the form:
-		#			<time>(current local time)</time>
-		#-----------------------------------------------------------------------------------------------------------
-		elif command == '/time':
-		
-			self.sendData('<time>' + time.ctime() + '</time>', 'text/xml')
 		
 		
-		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/reload-library'      - LOCALHOST ONLY -
-		#
-		#	Instructs this program to reload the music library. This is necessary if the user adds new
-		#	songs to their library while DJing. Note, it is not adviseable to simply monitor the 'modified time'
-		#	of the iTunes XML file, since iTunes is constantly updating that file with other inconsequential data.
-		#
-		#	Query string parameters: (none)
-		#
-		#	Returns plain text:
-		#		'OK'	reload succeeded
-		#		'FAIL'	unknown error occured
-		#-----------------------------------------------------------------------------------------------------------
-		elif command == '/reload-library':
-			# only answer requests from the localhost
-			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
-				return
-			
-			try:
-				LoadLibrary()
-				self.sendData('OK')
-			except:
-				self.sendData('FAIL')
-
-		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/reload-config'      - LOCALHOST ONLY -
-		#
-		#	Instructs this program to reload the config file. This is necessary if the user changes config
-		#	options like "max requests per user per hour", etc.
-		#
-		#	Query string parameters: (none)
-		#
-		#	Returns plain text:
-		#		'OK'	reload succeeded
-		#		'FAIL'	unknown error occured
-		#-----------------------------------------------------------------------------------------------------------
-		elif command == '/reload-config':
-			# only answer requests from the localhost
-			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
-				return
-				
-			try:
-				LoadConfig()
-				self.sendData('OK')
-			except:
-				self.sendData('FAIL')
-				
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/history'
 		#
@@ -613,6 +674,21 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			gc.collect()
 			
+			
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/time'
+		#
+		#	Returns the local time on the DJ's computer. Needed for certain things on the server.
+		#
+		#	Query string parameters: (none)
+		#
+		#	Returns XML of the form:
+		#			<time>(current local time)</time>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/time':
+		
+			self.sendData('<time>' + time.ctime() + '</time>', 'text/xml')
+		
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command unknown!
@@ -1075,6 +1151,7 @@ def LogSong(timePlayed, songID, requestID):
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
 	
+	global Terminate
 	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
 	LoadConfig()
@@ -1083,7 +1160,8 @@ def main():
 	try:
 		server = HTTPServer(('', Config['Port']), MBRadio)
 		Debug.out('Starting MBRadio Webserver')
-		server.serve_forever()
+		while not Terminate:
+			server.handle_request()
 		
 	except KeyboardInterrupt:
 		Debug.out('^C received, shutting down server')
