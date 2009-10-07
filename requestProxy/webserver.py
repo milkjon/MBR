@@ -1128,7 +1128,7 @@ def LogSong(timePlayed, songID, requestID):
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
 
-	gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
+	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
 	try:
 		LoadConfig()
