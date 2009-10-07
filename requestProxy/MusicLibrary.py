@@ -349,7 +349,7 @@ class MusicLibrary:
 		except:
 			return None
 	#enddef searchBy_Title
-		
+	
 	def searchBy_Any(self, searchStr):
 		# Search the library where searchStr matches any of (title|artist|genre)
 		# NB: If searchStr consists of multiple words then ALL words must be found within at least ONE of the
