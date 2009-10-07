@@ -280,9 +280,9 @@ class MBRadio(BaseHTTPRequestHandler):
 				# this song was 'fulfilling' that request.
 				twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
 				try:
-					req = filter(lambda pair: pair[1]['songID'] == songID and pair[1]['time'] >= twentyMinAgo,
-								Requests.items())
-					requestID = req[0][0]
+					foundReq = [reqID for (reqID, req) in Requests.items() \
+										if req['songID'] == songID and req['time'] >= twentyMinAgo]
+					requestID = foundReq[0]
 				except:
 					requestID = None
 				
@@ -480,8 +480,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				sortStr = args['sort'][0].lower()
 				if sortStr.find('title') == -1:
 					sortStr += ',title=asc'
-				terms = map(lambda t: t.partition('-'), map(lambda t: t.strip(), sortStr.split(',')))
-				terms = filter(lambda triplet: triplet[0] in ['artist','title','album','genre'], terms)
+				terms = [term.strip().partition('-') for term in sortStr.split(',')]
+				terms = [triplet for triplet in terms if triplet[0] in ['artist','title','album','genre']]
 				
 				# remove duplicates, fill in empty sort directions
 				for field, dummy, dir in terms:
@@ -513,10 +513,10 @@ class MBRadio(BaseHTTPRequestHandler):
 				return
 
 			# make a list of tuples to correctly sort the songs
-			songListToSort = map(lambda songID: MakeSortingTuple(songID, sortBy), resultSet)
+			songListToSort = [MakeSortingTuple(songID, sortBy) for songID in resultSet]
 			songListToSort.sort()
 			# the songID is returned as the last item in the tuple
-			sortedSongList = map(lambda tuple: tuple[len(tuple)-1], songListToSort)
+			sortedSongList = [tuple[len(tuple)-1] for tuple in songListToSort]
 			
 			# packages the results as XML
 			packagedResults = PackageSonglist(sortedSongList, numResults, startingFrom)
@@ -567,10 +567,10 @@ class MBRadio(BaseHTTPRequestHandler):
 				return
 			
 			# sort requests by timestamp desc:
-			requestList = map(lambda (reqID,reqInfo): (reqInfo['time'], reqID), Requests.items())
+			requestList = [(info['time'], reqID) for (reqID,info) in Requests.items()]
 			requestList.sort()
 			requestList.reverse()
-			requestList = map(lambda pair: pair[1], requestList)
+			requestList = [pair[1] for pair in requestList]
 				
 			if args['results'][0] == 'all':
 				numResults = len(requestList)
@@ -655,7 +655,8 @@ class MBRadio(BaseHTTPRequestHandler):
 			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<historylist count=\"' + str(len(slicedHistoryList)) + '\">\n' + \
-								string.join(map(lambda h: PackageHistoryItem(h[0],h[1],h[2]), slicedHistoryList), '\n') + \
+								string.join([PackageHistoryItem(timestamp, songID, reqID) \
+												for (timestamp, songID, reqID) in slicedHistoryList], '\n') + \
 								'</historylist>'
 			
 			# gzip the results?
@@ -884,7 +885,7 @@ class MBRadio(BaseHTTPRequestHandler):
 												'requestedBy': requestedBy, 'dedication': dedication } )
 
 				# add to NewRequests list
-				NewRequests.append( requestID )
+				NewRequests.append(requestID)
 				
 				# log the request
 				LogRequest(requestID)
