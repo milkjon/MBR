@@ -26,6 +26,8 @@
 	FOLLOWUP		As long as you can play the track from Applescript with the Persistent ID, let's do that.
 	(Erich)
 	
+	RESULT			DONE - We will use the PersistentID throughout.
+	
 3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
 	(Jonathan)		and python.
 					
@@ -55,10 +57,25 @@
 	(Jon)			Apart from the serverPort I guess, which could be given as a parameter when the server is started (by the objc app)
 					I am plainning to use the normal cocoa defaults system for storing the prefs. The prefs will be stored in .plist format 
 					(binary or textual) A good Mac way is to minimize the prefs.
+					
+	FOLLOWUP		I implemented a 'http://localhost:15800/set-config' interface
+	(Erich)			This will allow the ObjC app to change config settings on the python server on the fly.
+				
+					Will this work as you want?
 	
 	RESULT			?
 		
+		
+6.	INVESTIGATE		Can iTunes be queried with Applescript to find out what the next X items in the playlist are?
+			
+					One function of the website is to return a list of "coming up next" songs. It shows the next 3 or 4
+					songs that will be played from the playlist queue.
 
+					Getting this information to the python server could be as simple as a call to an interface like
+					http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
+
+=== Done
+		
 4b.	INVESTIGATE		Also, is there a way to pull from iTunes a list of tracks that have recently been played?
 					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
 					this information on the website.
@@ -73,10 +90,8 @@
 					in memory for the current session, and also logged to a file on the disk for statistics purposes
 					at a later time.
 
-	RESULT			?
-
-
-=== Done
+	RESULT			DONE
+	
 
 4a.	INVESTIGATE		Can we investigate if there is a way to pull information from iTunes about the song that is
 					currently playing?
