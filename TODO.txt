@@ -11,9 +11,17 @@
 	(Jonathan)		This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
 	
 	STATUS			Incomplete
+
+2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
+	(Jonathan)
+	STATUS			Incomplete
+
+3.	TO DO			Cocoa App should start the webserver
+	(Jonathan)
+	STATUS			Incomplete
 	
 	
-3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
+4.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
 	(Jonathan)		and python.
 					
 					*IDEA* Use one of those .plist files?  Both ObjC and Python can read those.
@@ -51,13 +59,14 @@
 	RESULT			?
 		
 		
-6.	INVESTIGATE		Can iTunes be queried with Applescript to find out what the next X items in the playlist are?
+5.	INVESTIGATE		Can iTunes be queried with Applescript to find out what the next X items in the playlist are?
 			
 					One function of the website is to return a list of "coming up next" songs. It shows the next 3 or 4
 					songs that will be played from the playlist queue.
 
 					Getting this information to the python server could be as simple as a call to an interface like
 					http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
+
 
 === Done
 
