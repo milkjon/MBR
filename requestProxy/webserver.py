@@ -79,6 +79,9 @@ def LoadConfig():
 		Config['AppDir'] = os.path.abspath(os.curdir)
 		Config['LogDir'] = os.path.join(Config['AppDir'], "logs")
 		Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
+		
+	if not os.path.exists(Config['LogDir']):
+		os.makedirs(Config['LogDir'])
 
 	# Max requests are enforced on sliding hour-long timeframe
 	Config['maxRequests_User'] = 10
@@ -385,19 +388,28 @@ class MBRadio(BaseHTTPRequestHandler):
 			try:
 				songID = args['songid'][0]
 				
-				song = Library.getSong(songID)
-				if song is None:
+				if not Library.songExists(songID):
 					self.sendData('INVALID')
 					return
 
 				# check that it's not already the most recent item in the list:
-				if History and History[len(History)-1] == songID:
+				if History and History[len(History)-1][1] == songID:
 					self.sendData('DUPLICATE')
 					return
 				
+				# let's assume that if there is a request for this songID sometime in the last 20 minutes, that
+				# this song was 'fulfilling' that request.
+				twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
+				try:
+					req = filter(lambda pair: pair[1]['songID'] == songID and pair[1]['time'] >= twentyMinAgo,
+								Requests.items())
+					requestID = req[0][0]
+				except:
+					requestID = None
+				
 				theTime = long(time.time())
-				History.append( (songID, theTime) )
-				LogSong(songID, theTime)
+				History.append( (theTime, songID, requestID) )
+				LogSong(theTime, songID, requestID)
 				self.sendData('OK')
 				
 			except:
@@ -555,12 +567,51 @@ class MBRadio(BaseHTTPRequestHandler):
 		#				<song id="(songID)">
 		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
 		#				</song>
+		#			[ optional ]
+		#				<requested>
+		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#				</requested>
+		#			[ /optional ]
 		#			</played>
 		#			...
 		#		</historylist>
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/history':
 		
+			if args is None or not args.has_key('results') or not args['results']:
+				self.sendError('Incomple query parameters')
+				return
+			
+			# make a copy of the history list, then reverse it
+			historyList = list(History)
+			historyList.reverse()
+			
+			numResults = int(args['results'][0])
+			if numResults <= 0:
+				numResults = 1
+			if numResults > len(historyList):
+				numResults = len(historyList)
+			
+			# take the slice:
+			slicedHistoryList = historyList[0:numResults]
+			
+			# package the song list as XML
+			contentType = 'text/xml'
+			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<historylist count=\"' + str(len(slicedHistoryList)) + '\">\n' + \
+								string.join(map(lambda h: PackageHistoryItem(h[0],h[1],h[2]), slicedHistoryList), '\n') + \
+								'</historylist>'
+			
+			# gzip the results?
+			if args.has_key('compress') and args['compress']:
+				if args['compress'][0].lower() == 'gzip':
+					contentType = 'application/x-gzip'
+					packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
+			
+			gc.collect()
 			
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -827,12 +878,12 @@ def PackageSong(songID):
 	if song is None:
 		return ""
 	
-	packageStr = '\t<song id=\"' + str(songID) + '\">' + \
+	packageStr = 	'<song id=\"' + str(songID) + '\">' + \
 					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
 					'<title>' + SafeXML(song['title']) + '</title>' + \
 					'<album>' + SafeXML(song['album']) + '</album>' + \
 					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
-					'<duration>' +str(song['duration']) + '</duration></song>'
+					'<duration>' + str(song['duration']) + '</duration></song>'
 
 	return packageStr
 	
@@ -841,14 +892,14 @@ def PackageSong(songID):
 def PackageRequest(requestID):
 	# packages the request info as an XML string
 	
+	if requestID is None:
+		return ""
 	if not Requests.has_key(requestID):
 		return ""
 	
 	reqInfo = Requests[requestID]
-	if reqInfo is None:
-		return ""
 	
-	packageStr = 	'\t<request id=\"' + str(requestID) + '\">' + \
+	packageStr = 	'<request id=\"' + str(requestID) + '\">' + \
 					'<time>' + str(reqInfo['time']) + '</time>' + \
 					'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
 					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
@@ -858,6 +909,31 @@ def PackageRequest(requestID):
 	return packageStr
 	
 #enddef PackageRequest
+
+def PackageHistoryItem(timePlayed, songID, requestID):
+	# packages a history item as an XML string
+	
+	if not Library.songExists(songID):
+		return ''
+		
+	packageStr = 	'<played time=\"' + str(timePlayed) + '\">' + \
+						PackageSong(songID)
+					
+	if not requestID is None and Requests.has_key(requestID):
+		reqInfo = Requests[requestID]
+		
+		packageStr +=	'<requested>' + \
+						'<time>' + str(reqInfo['time']) + '</time>' + \
+						'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
+						'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
+						'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
+						'</requested>'
+	
+	packageStr += '</played>'
+	
+	return packageStr
+	
+#enddef PackageRequestedInfo
 
 def SafeXML(theString):
 	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
@@ -885,6 +961,7 @@ def MakeSortingTuple(songID, sortBy):
 				sortList.append(SafeAscii(song['genre']).lower())
 		except:
 			pass
+			
 	sortList.append(songID)
 
 	return tuple(sortList)
@@ -901,20 +978,10 @@ def LogRequest(requestID):
 		return
 		
 	reqInfo = Requests[requestID]
-	if reqInfo is None:
-		return
 	
-	song = Library.getSong(reqInfo['songID'])
-	if song is None:
-		return
-	
-	# make sure the log file and logs directory exist:
+	# make sure the log file exists:
 	try:
-		if not os.path.exists(Config['LogDir']):
-			os.mkdir(Config['LogDir'])
-
 		requestLogFile = os.path.join(Config['LogDir'], "requests.xml")
-		
 		if not os.path.isfile(requestLogFile):
 			f = open(requestLogFile, 'w')
 			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
@@ -930,16 +997,9 @@ def LogRequest(requestID):
 					'<time>' + str(reqInfo['time']) + '</time>' + \
 					'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
 					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
-					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>'
-					
-	songXML = 		'<song>' + \
-					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
-					'<title>' + SafeXML(song['title']) + '</title>' + \
-					'<album>' + SafeXML(song['album']) + '</album>' + \
-					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
-					'</song>'
-					
-	requestXML +=	songXML + '</request>'
+					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
+					PackageSong(reqInfo['songID']) + \
+					'</request>'
 	
 	# write the log entry to the file
 	try:
@@ -965,17 +1025,13 @@ def LogRequest(requestID):
 #enddef LogRequest
 
 
-def LogSong(songID, timePlayed):
+def LogSong(timePlayed, songID, requestID):
 
-	song = Library.getSong(songID)
-	if song is None:
+	if not Library.songExists(songID):
 		return
 	
 	# make sure the log file and logs directory exist:
 	try:
-		if not os.path.exists(Config['LogDir']):
-			os.makedirs(Config['LogDir'])
-
 		playedLogFile = os.path.join(Config['LogDir'], "played.xml")
 		
 		if not os.path.isfile(playedLogFile):
@@ -989,16 +1045,7 @@ def LogSong(songID, timePlayed):
 		return
 		
 	# make the log entry as XML
-	playedXML =		'<played time=\"' + str(timePlayed) + '\">'
-					
-	songXML = 		'<song>' + \
-					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
-					'<title>' + SafeXML(song['title']) + '</title>' + \
-					'<album>' + SafeXML(song['album']) + '</album>' + \
-					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
-					'</song>'
-					
-	playedXML +=	songXML + '</played>'
+	playedXML =	PackageHistoryItem(timePlayed, songID, requestID)
 	
 	# write the log entry to the file
 	try:
