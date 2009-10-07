@@ -12,21 +12,6 @@
 	
 	STATUS			Incomplete
 	
-2.	INVESTIGATE		I am concerned what happens in iTunes if new tracks are added to the library while the person
-	(Erich)			is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
-					with new songs.
-					
-					However, I notice that there is a <key>Persistent ID</key> in the iTunes XML DB.
-					
-					Should we be using this ID instead of what is found in the Track ID field???
-					
-					Is it possible to add the correct track in iTunes (with your little applescript) using this
-					Persistent ID instead of the regular Track ID??
-	
-	FOLLOWUP		As long as you can play the track from Applescript with the Persistent ID, let's do that.
-	(Erich)
-	
-	RESULT			DONE - We will use the PersistentID throughout.
 	
 3.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
 	(Jonathan)		and python.
@@ -75,6 +60,23 @@
 					http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
 
 === Done
+
+2.	INVESTIGATE		I am concerned what happens in iTunes if new tracks are added to the library while the person
+	(Erich)			is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
+					with new songs.
+					
+					However, I notice that there is a <key>Persistent ID</key> in the iTunes XML DB.
+					
+					Should we be using this ID instead of what is found in the Track ID field???
+					
+					Is it possible to add the correct track in iTunes (with your little applescript) using this
+					Persistent ID instead of the regular Track ID??
+	
+	FOLLOWUP		As long as you can play the track from Applescript with the Persistent ID, let's do that.
+	(Erich)
+	
+	RESULT			DONE - We will use the PersistentID throughout.
+	
 		
 4b.	INVESTIGATE		Also, is there a way to pull from iTunes a list of tracks that have recently been played?
 					Say I want to know "What where the last 10 tracks played in iTunes" so that I can display
