@@ -274,11 +274,11 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for artist in self.byArtist.keys():
-				matches = filter(lambda word: artist.find(word) >= 0, wordList)
+				matches = [word for word in wordList if word in artist]
 				if len(matches) == len(wordList):
 					matchedSongs.extend(self.byArtist[artist])
 			
-			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,4), "seconds")
+			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
 			
 			del wordList
 			return matchedSongs
@@ -309,11 +309,11 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for genre in self.byGenre.keys():
-				matches = filter(lambda word: genre.find(word) >= 0, wordList)
+				matches = [word for word in wordList if word in genre]
 				if len(matches) == len(wordList):
 					matchedSongs.extend(self.byGenre[genre])
 			
-			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,4), "seconds")
+			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
 			
 			del wordList
 			return matchedSongs
@@ -344,11 +344,11 @@ class MusicLibrary:
 			matchedSongs = []
 			for songID, songData in self.songs.items():
 				songTitle = SafeAscii(songData['title']).lower()
-				matches = filter(lambda word: songTitle.find(word) >= 0, wordList)
+				matches = [word for word in wordList if word in songTitle]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 			
-			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,4), "seconds")
+			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
 			
 			del wordList
 			return matchedSongs
@@ -378,33 +378,31 @@ class MusicLibrary:
 			t1 = time.time()
 			
 			matchedSongs = []
-			
 			for songID, songData in self.songs.items():
 				
 				# search by artist first
 				songArtist = SafeAscii(songData['artist']).lower()
-				matches = filter(lambda word: songArtist.find(word)>=0, wordList)
+				matches = [word for word in wordList if word in songArtist]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 				
 				# search by title
 				songTitle = SafeAscii(songData['title']).lower()
-				matches = filter(lambda word: songTitle.find(word)>=0, wordList)
+				matches = [word for word in wordList if word in songTitle]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 					
 				# search by genre
 				songGenre = SafeAscii(songData['genre']).lower()
-				matches = filter(lambda word: songGenre.find(word)>=0, wordList)
+				matches = [word for word in wordList if word in songGenre]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
-				
-			#endfor 
-			
-			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,4), "seconds")
+			#endfor
+
+			Debug.out("  Found", len(matchedSongs), "in", round(time.time()-t1,6), "seconds")
 			
 			del wordList
 			return matchedSongs
