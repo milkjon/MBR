@@ -23,7 +23,7 @@ def SafeAscii(theString):
 	
 #enddef SafeAscii()
 
-def	String2RESafeAsciiWordList(theString):
+def	String2SafeAsciiWordList(theString):
 	# Transforms a string into a list consisting of the individual words in the string, where each word has
 	# been translated into lower-case 7-bit ASCII and escaped for use in a regular-expression search.
 	#
@@ -42,12 +42,12 @@ def	String2RESafeAsciiWordList(theString):
 	asciiWords = asciiStr.split()
 	
 	# escape the words for use in a regular expression search
-	reEscapedWords = map(lambda word: re.escape(word), asciiWords)
+	#reEscapedWords = map(lambda word: re.escape(word), asciiWords)
 	
-	del asciiWords
-	return reEscapedWords
+	#del asciiWords
+	return asciiWords
 			
-#enddef	String2RESafeAsciiWordList()
+#enddef	String2SafeAsciiWordList()
 
 def FirstAlphanumericChar(theString):
 	asciiStr = SafeAscii(theString).lower()
@@ -265,7 +265,7 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2RESafeAsciiWordList(searchStr)
+			wordList = String2SafeAsciiWordList(searchStr)
 			
 			# find artists where all words match
 			
@@ -274,7 +274,7 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for artist in self.byArtist.keys():
-				matches = filter(lambda word: not re.search(word, artist) is None, wordList)
+				matches = filter(lambda word: artist.find(word) >= 0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.extend(self.byArtist[artist])
 			
@@ -300,7 +300,7 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2RESafeAsciiWordList(searchStr)
+			wordList = String2SafeAsciiWordList(searchStr)
 			
 			# find genres where all words match
 			
@@ -309,7 +309,7 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for genre in self.byGenre.keys():
-				matches = filter(lambda word: not re.search(word, genre) is None, wordList)
+				matches = filter(lambda word: genre.find(word) >= 0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.extend(self.byGenre[genre])
 			
@@ -334,7 +334,7 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2RESafeAsciiWordList(searchStr)
+			wordList = String2SafeAsciiWordList(searchStr)
 			
 			# find titles where all words match
 			
@@ -344,7 +344,7 @@ class MusicLibrary:
 			matchedSongs = []
 			for songID, songData in self.songs.items():
 				songTitle = SafeAscii(songData['title']).lower()
-				matches = filter(lambda word: not re.search(word, songTitle) is None, wordList)
+				matches = filter(lambda word: songTitle.find(word) >= 0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 			
@@ -370,7 +370,7 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2RESafeAsciiWordList(searchStr)
+			wordList = String2SafeAsciiWordList(searchStr)
 			
 			# find songs where all words match at least 1 of (artist, title, genre)
 			
@@ -378,25 +378,26 @@ class MusicLibrary:
 			t1 = time.time()
 			
 			matchedSongs = []
+			
 			for songID, songData in self.songs.items():
 				
 				# search by artist first
 				songArtist = SafeAscii(songData['artist']).lower()
-				matches = filter(lambda word: not re.search(word, songArtist) is None, wordList)
+				matches = filter(lambda word: songArtist.find(word)>=0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 				
 				# search by title
 				songTitle = SafeAscii(songData['title']).lower()
-				matches = filter(lambda word: not re.search(word, songTitle) is None, wordList)
+				matches = filter(lambda word: songTitle.find(word)>=0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 					
 				# search by genre
 				songGenre = SafeAscii(songData['genre']).lower()
-				matches = filter(lambda word: not re.search(word, songGenre) is None, wordList)
+				matches = filter(lambda word: songGenre.find(word)>=0, wordList)
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
