@@ -68,7 +68,30 @@
 					http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
 
 	FOLLOWUP		Yes. It just needs to be implemented. :) 
-	(Jon)		
+	(Jon)
+	
+	TODO			Implement it :P  Whenever the "find the currently playing song" timer results with a new songID
+	(Jon)			being played, then send the "coming up" information through the http-interface.
+	
+					Assume that the http interface specified above works:  i.e.,
+						http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
+	
+					We can set a hard-coded limit of 5 songs for the coming-up list.
+					
+	
+6.	TODO			Implement the statistics interface on the python app. The website requests information from the
+	(Erich)			python server such as "Top 10 Artists Played in the Last 5 Days"  or  "Top 10 Requested Artists"
+					and so on. Not strictly necessary, but if I want to fully emulate the existing windows application,
+					I should get this done :)
+					
+	STATUS			Started
+	
+
+7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
+	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
+					be included in this project.
+	
+	STATUS			None
 
 === Done
 
