@@ -12,6 +12,10 @@
 	NSTimer *requestCheckTimer_;
 	NSTimer *songQueryTimer_;
 	
+	NSString *addToiTunesTemplate_;
+	NSString *getTrackTemplate_;
+	NSString *getNextTracks_;
+	
 	IBOutlet NSArrayController *arrayController;
 	IBOutlet NSTableView *tableView;
 }

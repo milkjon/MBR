@@ -44,9 +44,7 @@
 	// Get playlists from iTunes
 	// Update Popup - button
 	// Select playlist that is saved to prefs.
-	
-	
-	
+
 }
 
 - (IBAction) add: (id) sender
@@ -85,14 +83,7 @@
 	NSString *playlist = @"radio";
 	NSString *trackID = [track trackID];
 	
-	NSString *source = [NSString stringWithFormat: 
-		@"tell application \"iTunes\"\n"
-		@"    set pl to some playlist whose name is \"Library\"\n"
-		@"    set t to some track of pl whose persistent ID is \"%@\" \n"
-		@"    set target to some playlist whose name is \"%@\" \n"
-		@"    add (get location of t) to target \n"
-		@"end tell ", trackID, playlist]; 
-						
+	NSString *source = [NSString stringWithFormat: addToiTunesTemplate_, trackID, playlist]; 
 	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
 	
 	NSDictionary *error = nil;
@@ -117,10 +108,10 @@
 
 - (void) querySong
 {
-	NSString *source = @"tell application \"iTunes\" to get persistent id of current track";
-	NSAppleScript* script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
-	NSString *ident = [[script executeAndReturnError: nil] stringValue];
-	NSLog(@"Playing ID: %@", ident);
+	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: getTrackTemplate_] autorelease];
+	NSDictionary *err=nil;
+	NSString *ident = [[script executeAndReturnError: &err] stringValue];
+	NSLog(@"Playing ID: %@, err: %@", ident, err);
 	
 	// Make the http request
 	NSString *str = [NSString stringWithFormat: @"http://localhost:15800/now-playing?songid=%@", ident];
@@ -135,7 +126,11 @@
 		requests = [[NSMutableArray alloc] init];
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
 		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
-
+		
+		addToiTunesTemplate_ = [[NSString alloc] initWithContentsOfFile: 
+				[[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
+		getTrackTemplate_ = [[NSString alloc] initWithContentsOfFile: 
+				[[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
 	}
 	return self;
 }
