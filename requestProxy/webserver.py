@@ -36,7 +36,7 @@ Hosts = {}
 # Requests dictionary - all requests received by server
 #	Contents:
 #		keys:		requestID
-#		values:		dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP),
+#		values:		dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP), 'status': (waiting|played), 
 #					      'requestedBy': (requestor), 'dedication': (dedication info) }
 Requests = {}
 
@@ -47,7 +47,7 @@ NewRequests = []
 
 # History list - list of songID's that have been played
 #	Contents:
-#		list[ (songID1, timestamp), (songID2, timestamp), ... ]
+#		list[ (timestamp, songID1, requestID1), (timestamp, songID2, requestID2), ... ]
 History = []
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -80,9 +80,18 @@ def LoadConfig():
 		Config['AppDir'] = os.path.abspath(os.curdir)
 		Config['LogDir'] = os.path.join(Config['AppDir'], "logs")
 		Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
-		
-	if not os.path.exists(Config['LogDir']):
-		os.makedirs(Config['LogDir'])
+	
+	try:
+		if not os.path.exists(Config['AppDir']):
+			os.makedirs(Config['AppDir'])
+	except:
+		Debug.out("Could not make the application directory path")
+	
+	try:
+		if not os.path.exists(Config['LogDir']):
+			os.makedirs(Config['LogDir'])
+	except:
+		Debug.out("Could not make the log directory path")
 
 	# Max requests are enforced on sliding hour-long timeframe
 	Config['maxRequests_User'] = 10
@@ -122,6 +131,8 @@ def LoadLibrary():
 
 global RequestCount
 RequestCount = 0
+
+newlinestripper = string.maketrans('\n\r\f','   ')
 
 class MBRadio(BaseHTTPRequestHandler):
 	
@@ -192,7 +203,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#	Returns XML of the form:
 		#		<requestlist count="(count)">
 		#			<request id="(requestID)">
-		#				<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#				<time></time><host></host><requestedby></requestedby><dedication></dedication><status></status>
 		#				<song id="(songID)">
 		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
 		#				</song>
@@ -270,7 +281,7 @@ class MBRadio(BaseHTTPRequestHandler):
 					return
 
 				# check that it's not already the most recent item in the list:
-				if History and History[len(History)-1][1] == songID:
+				if History and History[-1][1] == songID:
 					self.sendData('DUPLICATE')
 					return
 				
@@ -279,8 +290,10 @@ class MBRadio(BaseHTTPRequestHandler):
 				twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
 				try:
 					foundReq = [reqID for (reqID, req) in Requests.items() \
-										if req['songID'] == songID and req['time'] >= twentyMinAgo]
+										if req['songID'] == songID and req['time'] >= twentyMinAgo \
+											and req['status'] == 'waiting']
 					requestID = foundReq[0]
+					Requests[requestID]['status'] = 'played'
 				except:
 					requestID = None
 				
@@ -451,7 +464,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/search':
 
 			if not args or not args.has_key('by') or not args.has_key('for') or not args['by'] or not args['for']:
-				self.sendError('Incomple search parameters: /search/?for=X&by=Y required')
+				self.sendError('Incomple query parameters: /search/?for=X&by=Y required')
 				return
 			
 			searchBy = args['by'][0].lower()
@@ -514,10 +527,13 @@ class MBRadio(BaseHTTPRequestHandler):
 				return
 
 			# make a list of tuples to correctly sort the songs
+			t1 = time.time()
 			songListToSort = [MakeSortingTuple(songID, sortBy) for songID in resultSet]
 			songListToSort.sort()
 			# the songID is returned as the last item in the tuple
-			sortedSongList = [tuple[len(tuple)-1] for tuple in songListToSort]
+			sortedSongList = [tuple[-1] for tuple in songListToSort]
+			
+			Debug.out("  Sorted", len(sortedSongList),"in", round(time.time()-t1,6), "seconds")
 			
 			# sanitise the numResults & startingFrom
 			if startingFrom > len(sortedSongList):
@@ -543,10 +559,9 @@ class MBRadio(BaseHTTPRequestHandler):
 			contentType = 'text/xml'
 			
 			# gzip the results?
-			if args.has_key('compress') and args['compress']:
-				if args['compress'][0].lower() == 'gzip':
-					contentType = 'application/x-gzip'
-					packagedResults = zlib.compress(packagedResults)
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
@@ -570,7 +585,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#	Returns XML of the form: 
 		#		<requestlist count="(count)">
 		#			<request id="(requestID)">
-		#				<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#				<time></time><host></host><requestedby></requestedby><dedication></dedication><status></status>
 		#				<song id="(songID)">
 		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
 		#				</song>
@@ -581,7 +596,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/requests':
 			
 			if args is None or not args.has_key('results') or not args['results']:
-				self.sendError('Incomple query parameters')
+				self.sendError('Incomple query parameters:  /requests?results=X  required')
 				return
 			
 			# sort requests by timestamp desc:
@@ -610,10 +625,9 @@ class MBRadio(BaseHTTPRequestHandler):
 								'</requestlist>'
 			
 			# gzip the results?
-			if args.has_key('compress') and args['compress']:
-				if args['compress'][0].lower() == 'gzip':
-					contentType = 'application/x-gzip'
-					packagedResults = zlib.compress(packagedResults)
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
@@ -639,11 +653,11 @@ class MBRadio(BaseHTTPRequestHandler):
 		#				<song id="(songID)">
 		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
 		#				</song>
-		#			[ optional ]
+		#			[ optional: ]
 		#				<requested>
-		#					<time></time><host></host><requestedby></requestedby><dedication></dedication>
+		#					<time></time><host></host><requestedby></requestedby><dedication></dedication><status></status>
 		#				</requested>
-		#			[ /optional ]
+		#			[ end optional ]
 		#			</played>
 		#			...
 		#		</historylist>
@@ -651,14 +665,17 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/history':
 		
 			if args is None or not args.has_key('results') or not args['results']:
-				self.sendError('Incomple query parameters')
+				self.sendError('Incomple query parameters: /history?results=X required')
 				return
 			
 			# make a copy of the history list, then reverse it
 			historyList = list(History)
 			historyList.reverse()
 			
-			numResults = int(args['results'][0])
+			try:
+				numResults = int(args['results'][0])
+			except:
+				numResults = 1
 			if numResults <= 0:
 				numResults = 1
 			if numResults > len(historyList):
@@ -676,10 +693,9 @@ class MBRadio(BaseHTTPRequestHandler):
 								'</historylist>'
 			
 			# gzip the results?
-			if args.has_key('compress') and args['compress']:
-				if args['compress'][0].lower() == 'gzip':
-					contentType = 'application/x-gzip'
-					packagedResults = zlib.compress(packagedResults)
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
@@ -818,10 +834,14 @@ class MBRadio(BaseHTTPRequestHandler):
 				requestedBy = ''
 				if form.has_key('requestedBy') and form['requestedBy']:
 					requestedBy = form['requestedBy'][0].strip()
+					# strip newlines
+					requestedBy = requestedBy.translate(newlinestripper)
 				
 				dedication = ''
 				if form.has_key('dedication') and form['dedication']:
 					dedication = form['dedication'][0].strip()
+					# strip newlines
+					dedication = dedication.translate(newlinestripper)
 				
 				# is it a valid song?
 				requestedSong = Library.getSong(songID)
@@ -895,8 +915,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
 				
 				# add request to Requests list
-				Requests[requestID] =	dict( { 'songID': songID, 'time': requestTime, 'host': hostIP, \
-												'requestedBy': requestedBy, 'dedication': dedication } )
+				Requests[requestID] = {'songID': songID, 'time': requestTime, 'host': hostIP, 'status': 'waiting', 
+										'requestedBy': requestedBy, 'dedication': dedication }
 
 				# add to NewRequests list
 				NewRequests.append(requestID)
@@ -957,6 +977,7 @@ def PackageRequest(requestID):
 					'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
 					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
 					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
+					'<status>' + reqInfo['status'] + '</status>' + \
 					PackageSong(reqInfo['songID']) + '</request>'
 
 	return packageStr
@@ -980,6 +1001,7 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 						'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
 						'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
 						'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
+						'<status>' + reqInfo['status'] + '</status>' + \
 						'</requested>'
 	
 	packageStr += '</played>'
@@ -999,19 +1021,20 @@ def SafeAscii(theString):
 def MakeSortingTuple(songID, sortBy):
 	song = Library.getSong(songID)
 	if song is None:
-		return tuple(map(lambda x: None, range(len(sortBy)+1)))
+		return tuple([None for i in range(len(sortBy)+1)])
 	
 	sortList=[]
 	for field,dir in sortBy:
 		try:
 			if field == 'artist':
-				sortList.append(SafeAscii(song['sortArtist']).lower())
+				field = 'sortArtist'
 			elif field == 'title':
-				sortList.append(SafeAscii(song['sortTitle']).lower())
-			elif field == 'album':
-				sortList.append(SafeAscii(song['album']).lower())
-			elif field == 'genre':
-				sortList.append(SafeAscii(song['genre']).lower())
+				field = 'sortTitle'
+			
+			if not song[field] or song[field] == '[Unknown]':
+				sortList.append(chr(128))
+			else:
+				sortList.append(SafeAscii(song[field]).lower())
 		except:
 			pass
 			
@@ -1024,7 +1047,6 @@ def MakeSortingTuple(songID, sortBy):
 #----------------------------------------------------------------------------------------------------------------------#
 #  Logging Functions
 #----------------------------------------------------------------------------------------------------------------------#
-
 def LogRequest(requestID):
 	
 	if not Requests.has_key(requestID):
@@ -1032,15 +1054,10 @@ def LogRequest(requestID):
 		
 	reqInfo = Requests[requestID]
 	
+	requestLogFile = os.path.join(Config['LogDir'], "requests.xml")
 	# make sure the log file exists:
 	try:
-		requestLogFile = os.path.join(Config['LogDir'], "requests.xml")
-		if not os.path.isfile(requestLogFile):
-			f = open(requestLogFile, 'w')
-			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			f.write("<requestlog>\n") 
-			f.write("</requestlog>\n")
-			f.close()
+		File_CheckOrMakeDefault(requestLogFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<requestlog>\n</requestlog>\n")
 	except:
 		Debug.out("Request log file does not exist, or file could not be created.")
 		return
@@ -1052,28 +1069,13 @@ def LogRequest(requestID):
 					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
 					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
 					PackageSong(reqInfo['songID']) + \
-					'</request>'
+					'</request>\n'
 	
-	# write the log entry to the file
+	# try to write to the xml file
 	try:
-		# get current logfile contents:
-		f = open(requestLogFile, 'r')
-		logLines = f.readlines()
-		f.close()
-
-		f = open(requestLogFile, 'w')
-		for i, line in enumerate(logLines):
-			# print the new request when i == 2
-			#	(when i==0, line should be "<?xml ... ?>", when i==1, line should be "<requestlog>")
-			if i == 2:
-				f.write(requestXML + '\n')
-			f.write(line.strip() + '\n')
-			
-		f.close()
+		File_InsertAtLine(requestLogFile, requestXML, 3)
 	except:
 		Debug.out("Failed to write request to log file")
-	
-	gc.collect()
 
 #enddef LogRequest
 
@@ -1083,16 +1085,11 @@ def LogSong(timePlayed, songID, requestID):
 	if not Library.songExists(songID):
 		return
 	
+	playedLogFile = os.path.join(Config['LogDir'], "played.xml")
+	
 	# make sure the log file and logs directory exist:
 	try:
-		playedLogFile = os.path.join(Config['LogDir'], "played.xml")
-		
-		if not os.path.isfile(playedLogFile):
-			f = open(playedLogFile, 'w')
-			f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			f.write("<historylog>\n") 
-			f.write("</historylog>\n")
-			f.close()
+		File_CheckOrMakeDefault(playedLogFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<historylog>\n</historylog>\n")
 	except:
 		Debug.out("Played log file does not exist, or file could not be created.")
 		return
@@ -1100,28 +1097,46 @@ def LogSong(timePlayed, songID, requestID):
 	# make the log entry as XML
 	playedXML =	PackageHistoryItem(timePlayed, songID, requestID)
 	
-	# write the log entry to the file
+	# try to write to the xml file
 	try:
-		# get current logfile contents:
-		f = open(playedLogFile, 'r')
-		logLines = f.readlines()
-		f.close()
-
-		f = open(playedLogFile, 'w')
-		for i, line in enumerate(logLines):
-			# print the new request when i == 2
-			#	(when i==0, line should be "<?xml ... ?>", when i==1, line should be "<historylog>")
-			if i == 2:
-				f.write(playedXML + '\n')
-			f.write(line.strip() + '\n')
-			
-		f.close()
+		File_InsertAtLine(playedLogFile, playedXML, 3)
 	except:
 		Debug.out("Failed to write song to play history file")
-	
-	gc.collect()
 
 #enddef LogSong
+
+def File_InsertAtLine(fileName, newLine, atLineNumber):
+	import fileinput
+
+	lines = []
+	f = fileinput.FileInput(fileName, inplace=1)
+	for i in range(1, atLineNumber):
+		lines.append(f.readline().rstrip())
+	lines.append(newLine)
+	sys.stdout.write(string.join(lines, '\n'))
+	
+	for line in f:
+		sys.stdout.write(line)
+	f.close()
+	
+#enddef File_InsertAtLine
+
+def File_CheckOrMakeDefault(fileName, defaultContent):
+	
+	createDefault = False
+	if os.path.isfile(fileName):
+		statinfo = os.stat(fileName)
+		if not statinfo.st_size:
+			createDefault = True
+	else:
+		createDefault = True
+		
+	if createDefault:
+		f = open(fileName, 'w')
+		f.write(defaultContent)
+		f.close()
+	
+#enddef File_CheckOrMakeDefault
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  main()
