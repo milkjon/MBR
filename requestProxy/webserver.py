@@ -14,16 +14,18 @@ import os.path, string, unicodedata, time, os, sys, urlparse, cgi, zlib, gc
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 # local imports
-import iTunesLibrary
-import Debug
+import iTunesLibrary, Statistics, Debug
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Globals
 #----------------------------------------------------------------------------------------------------------------------#
-global Library, Config
+global Library, Config, PlayStats, RequestStats
 
 Library = None
 Config = {}
+
+PlayStats = Statistics.PlayedStatistics()
+RequestStats = Statistics.RequestStatistics()
 
 global Hosts, Requests, NewRequests, History
 # Hosts dictionary - all remote hosts (users) that have made requests
@@ -169,6 +171,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		#	/search					Remote webserver	Query
 		#	/requests				Remote webserver	Query
 		#	/history				Remote webserver	Query
+		#	/stats					Remote webserver	Query
 		#	/time					Remote webserver	Query
 		#---------------------------------------------------------------------------------------------------------------
 		
@@ -276,7 +279,8 @@ class MBRadio(BaseHTTPRequestHandler):
 			try:
 				songID = args['songid'][0]
 				
-				if not Library.songExists(songID):
+				thisSong = Library.getSong(songID)
+				if not thisSong:
 					self.sendData('INVALID')
 					return
 
@@ -300,6 +304,9 @@ class MBRadio(BaseHTTPRequestHandler):
 				theTime = long(time.time())
 				History.append( (theTime, songID, requestID) )
 				LogSong(theTime, songID, requestID)
+				PlayStats.addSong({'artist':thisSong['artist'], 'title':thisSong['title'],
+										'genre':thisSong['genre'], 'time':theTime})
+										
 				self.sendData('OK')
 				
 			except:
@@ -700,6 +707,100 @@ class MBRadio(BaseHTTPRequestHandler):
 			# send it back
 			self.sendData(packagedResults, contentType)
 			
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/stats-top'
+		#
+		#	This interface is used to get a list of recently played songs to display on the website.
+		#	History results are always returned in descending order by the time the song was played.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		get=		string			Y		One of ('artist','title','genre')
+		#		from=		string			Y		One of ('requests','history')
+		#		days=		integer			N		
+		#		results=	integer			Y		Specifies the number of results to return
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form: 
+		#		<toplist list_type="(from parameter)" entry_type="(get parameter)">
+		#			<entry>
+		#				<name></name><count></count>
+		#			</entry>
+		#			...
+		#		<toplist>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/stats-top':
+		
+			if args is None:
+				self.sendError('Incomple query parameters')
+				return
+				
+			try:
+				numResults = args['results'][0]
+				getThis = args['get'][0]
+				fromThis = args['from'][0]
+			except:
+				self.sendError('Incomple query parameters')
+				return
+			
+			numDays = 'all'
+			try:
+				numDays = int(args['days'][0])
+			except:
+				pass
+			
+			try:
+				numResults = int(numResults)
+			except:
+				numResults = 1
+			
+			if fromThis == 'requests':
+				if getThis == 'artist':
+					resultList = RequestStats.getTopArtists(numResults, numDays)
+				elif getThis == 'title':
+					resultList = RequestStats.getTopSongs(numResults, numDays)
+				elif getThis == 'genre':
+					resultList = RequestStats.getTopGenres(numResults, numDays)
+				else:
+					self.sendError('Invalid query parameter: get=' + getThis)
+					return
+					
+			elif fromThis == 'history':
+				if getThis == 'artist':
+					resultList = PlayStats.getTopArtists(numResults, numDays)
+				elif getThis == 'title':
+					resultList = PlayStats.getTopSongs(numResults, numDays)
+				elif getThis == 'genre':
+					resultList = PlayStats.getTopGenres(numResults, numDays)
+				else:
+					self.sendError('Invalid query parameter: get=' + getThis)
+					return
+			else:
+				self.sendError('Invalid query parameter: from=' + fromThis)
+				return
+			
+			# package the result list as XML
+			entryList = []
+			for entry in resultList:
+				entryList.append('<entry><name>' + SafeXML(entry[0]) + '</name>' + \
+									'<count>' + str(entry[1]) + '</count></entry>')
+			
+			contentType = 'text/xml'
+			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<toplist count="' + str(len(entryList)) + '" list_type="' + fromThis + '" ' + \
+									'entry_type="' + getThis + '">\n' + \
+								string.join(entryList, '\n') + \
+								'</toplist>'
+			
+			# gzip the results?
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
 			
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/time'
@@ -923,6 +1024,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				
 				# log the request
 				LogRequest(requestID)
+				RequestStats.addSong({'artist':requestedSong['artist'], 'title':requestedSong['title'],
+										'genre':requestedSong['genre'], 'time':requestTime})
 
 				# send a response back in XML
 				response = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
@@ -1095,7 +1198,7 @@ def LogSong(timePlayed, songID, requestID):
 		return
 		
 	# make the log entry as XML
-	playedXML =	PackageHistoryItem(timePlayed, songID, requestID)
+	playedXML =	PackageHistoryItem(timePlayed, songID, requestID) + '\n'
 	
 	# try to write to the xml file
 	try:
@@ -1111,9 +1214,9 @@ def File_InsertAtLine(fileName, newLine, atLineNumber):
 	lines = []
 	f = fileinput.FileInput(fileName, inplace=1)
 	for i in range(1, atLineNumber):
-		lines.append(f.readline().rstrip())
+		lines.append(f.readline())
 	lines.append(newLine)
-	sys.stdout.write(string.join(lines, '\n'))
+	sys.stdout.write(string.join(lines, ''))
 	
 	for line in f:
 		sys.stdout.write(line)
@@ -1139,6 +1242,11 @@ def File_CheckOrMakeDefault(fileName, defaultContent):
 #enddef File_CheckOrMakeDefault
 
 #----------------------------------------------------------------------------------------------------------------------#
+#  Statistics Support Functions
+#----------------------------------------------------------------------------------------------------------------------#
+
+
+#----------------------------------------------------------------------------------------------------------------------#
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
@@ -1149,6 +1257,9 @@ def main():
 		LoadConfig()
 		LoadLibrary()
 		
+		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
+		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
+
 		server = HTTPServer(('', Config['Port']), MBRadio)
 		Debug.out('Starting MBRadio Webserver')
 		server.serve_forever()
