@@ -78,14 +78,9 @@
 	
 					We can set a hard-coded limit of 5 songs for the coming-up list.
 					
-	
-6.	TODO			Implement the statistics interface on the python app. The website requests information from the
-	(Erich)			python server such as "Top 10 Artists Played in the Last 5 Days"  or  "Top 10 Requested Artists"
-					and so on. Not strictly necessary, but if I want to fully emulate the existing windows application,
-					I should get this done :)
+	FOLLOWUP		I implemented the  http://localhost:15800/coming-up  interface as specified.
+	(Erich)			You can check the contents of the queue by requesting http://localhost:15800/queue
 					
-	STATUS			Started
-	
 
 7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
 	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
@@ -94,6 +89,14 @@
 	STATUS			None
 
 === Done
+
+6.	TODO			Implement the statistics interface on the python app. The website requests information from the
+	(Erich)			python server such as "Top 10 Artists Played in the Last 5 Days"  or  "Top 10 Requested Artists"
+					and so on. Not strictly necessary, but if I want to fully emulate the existing windows application,
+					I should get this done :)
+					
+	STATUS			Complete
+	
 
 2.	INVESTIGATE		I am concerned what happens in iTunes if new tracks are added to the library while the person
 	(Erich)			is DJing. I do not believe the "Track ID" numbers remain consistent if the library is updated
