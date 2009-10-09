@@ -46,43 +46,13 @@ def	String2SafeAsciiWordList(theString):
 #enddef	String2SafeAsciiWordList()
 
 def FirstAlphanumericChar(theString):
-	asciiStr = SafeAscii(theString).lower()
-	for c in asciiStr:
+	#asciiStr = SafeAscii(theString).lower()
+	for c in theString:
 		if c.isalnum():
-			return c
+			return c.lower()
 	return '0'
 
 class MusicLibrary:
-	
-	#------------------------------------------------------------------------------------------------------------------#
-	# Private Variables: hold the music database and lookup tables
-	#------------------------------------------------------------------------------------------------------------------#
-	
-	# songs dictionary
-	#	Holds all of the songs in the library
-	#	Format:		keys: 	 <songID> (string)
-	#				values:	 dict{ 'artist': (ustring), 'title': (ustring), 'album': (ustring), 'genre': (ustring), 
-	#						       'duration': (integer), 'sort-artist': (ustring), 'sort-title': (ustring) }
-	songs = {}
-	
-	# byLetter dictionary
-	#	Holds lists of songIDs organized by first letter (for fast searching)
-	#	Format:		keys:	 '0', 'A', 'B', 'C', .... 'Z'
-	#				values:	 list[(songID1), (songID2),...]
-	byLetter = {}
-	
-	# byGenre dictionary
-	#	Holds lists of songIDs organized by song genre (for fast searching)
-	#	Format:		keys:	 <genre-name>  (as string)
-	#				values:	 list[(songID1), (songID2),...]
-	byGenre = {}
-	
-	# byArtist dictionary
-	#	Holds lists of songIDs organized by song artist (for fast searching)
-	#	Format:		keys:	 <artist-name>  (as string)
-	#				values:	 list[(songID1), (songID2),...]
-	byArtist = {}
-	
 	
 	#------------------------------------------------------------------------------------------------------------------#
 	# Init
@@ -90,10 +60,34 @@ class MusicLibrary:
 	
 	def __init__(self):
 		
+		# songs dictionary
+		#	Holds all of the songs in the library
+		#	Format:		keys: 	 <songID> (string)
+		#				values:	 dict{ 'artist': (ustring), 'title': (ustring), 'album': (ustring), 'genre': (ustring), 
+		#						       'duration': (integer), 'sort-artist': (ustring), 'sort-title': (ustring) }
+		self.songs = {}
+		
+		# byLetter dictionary
+		#	Holds lists of songIDs organized by first letter (for fast searching)
+		#	Format:		keys:	 '0', 'A', 'B', 'C', .... 'Z'
+		#				values:	 list[(songID1), (songID2),...]
+		self.byLetter = {}
+		
+		# byGenre dictionary
+		#	Holds lists of songIDs organized by song genre (for fast searching)
+		#	Format:		keys:	 <genre-name>  (as string)
+		#				values:	 list[(songID1), (songID2),...]
+		self.byGenre = {}
+		
+		# byArtist dictionary
+		#	Holds lists of songIDs organized by song artist (for fast searching)
+		#	Format:		keys:	 <artist-name>  (as string)
+		#				values:	 list[(songID1), (songID2),...]
+		self.byArtist = {}
+		
 		asciiLetters = string.ascii_lowercase
 		for c in asciiLetters:
 			self.byLetter[c] = []
-			
 		self.byLetter['0'] = []
 		
 	#enddef __init__()
