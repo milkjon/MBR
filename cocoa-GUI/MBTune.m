@@ -42,7 +42,7 @@
 
 -(NSString*) length
 {
-	return length_;
+	return duration_;
 }
 
 -(NSDate*) requestTime
@@ -104,13 +104,13 @@
 	trackID_ = [trackID retain];
 }
 
--(void) setLength: (NSString*) length
+-(void) setDuration: (NSString*) length
 {
-	if (length == length_)
+	if (length == duration_)
 		return;
 	
-	[length_ release];
-	length_ = [length retain];
+	[duration_ release];
+	duration_ = [length retain];
 }
 
 

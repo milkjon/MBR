@@ -13,7 +13,7 @@
 	NSString *title_;
 	NSString *album_;
 	NSString *trackID_;
-	NSString *length_;
+	NSString *duration_;
 	
 	NSDate* requestTime_;
 	NSString* requester_;
@@ -34,6 +34,6 @@
 -(void) setRequester: (NSString *) requester;
 -(void) setDedication: (NSString *) dedication;
 -(void) setTrackID: (NSString *) trackID;
--(void) setLength: (NSString *) length;
+-(void) setDuration: (NSString *) length;
 -(void) setRequestTime: (NSDate *) requestTime;
 @end
