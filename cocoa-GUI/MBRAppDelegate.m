@@ -13,6 +13,8 @@
 #define kRequests @"requests"
 
 #define BASEURL @"http://localhost:15800/"
+#define PYTHON  @"/usr/bin/python"
+
 @implementation MBRAppDelegate
 
 #pragma mark talking to webserver
@@ -124,6 +126,20 @@
 	
 	NSLog(@"upcoming: %@", songList);	
 	NSLog(@"queryString: %@", queryString);		
+- (IBAction) startServer: (id) sender
+{
+	NSLog(@"Start Server");
+	serverTask_ = [NSTask launchedTaskWithLaunchPath: PYTHON
+		arguments: [NSArray arrayWithObject: [[NSBundle mainBundle] pathForResource:@"webserver" ofType:@"py"]]];
+				
+	[serverTask_ retain];
+}
+
+- (IBAction) stopServer: (id) sender
+{
+	NSLog(@"Stop Server");
+	[serverTask_ terminate];
+	[serverTask_ release];
 }
 
 - (id) init
@@ -131,6 +147,7 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
+		serverTask_ = nil;
 		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
 		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 		
@@ -146,6 +163,8 @@
 	[requestCheckTimer_ release];
 	[songQueryTimer_ invalidate];
 	[songQueryTimer_ release];
+	[serverTask_  terminate];
+	[serverTask_ release];
 	[super dealloc];
 }
 
