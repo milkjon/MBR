@@ -12,9 +12,16 @@
 
 #define kRequests @"requests"
 
+#define BASEURL @"http://localhost:15800/"
 @implementation MBRAppDelegate
 
+#pragma mark talking to webserver
+
+- (NSString *) _makeWebRequest: (NSString *) request
 {
+	NSLog(@"%@", request);
+	NSURL *url = [NSURL URLWithString: [BASEURL stringByAppendingString: request]];
+	NSString *result = [NSString stringWithContentsOfURL: url];
 	return result;
 }
 
