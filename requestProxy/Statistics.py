@@ -138,10 +138,12 @@ class PlayedStatistics(Statistics):
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
 		p.buffer_text = True
-		p.ParseFile(file(logFile))
-
-		Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
-
+		try:
+			p.ParseFile(file(logFile))
+			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
+		except IOError:
+			pass
+			
 	def start_element(self, name, attrs):	
 		if name == u'played':
 			self.playData.update({'time': attrs['time'], 'artist':'', 'title':'', 'genre':''})
@@ -189,9 +191,11 @@ class RequestStatistics(Statistics):
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
 		p.buffer_text = True
-		p.ParseFile(file(logFile))
-
-		Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
+		try:
+			p.ParseFile(file(logFile))
+			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
+		except IOError:
+			pass
 
 	def start_element(self, name, attrs):	
 		if name == u'request':
