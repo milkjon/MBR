@@ -113,6 +113,7 @@
 	NSLog(@"Stop Server");
 	[serverTask_ terminate];
 	[serverTask_ release];
+	serverTask_ = nil;
 }
 
 #pragma mark Notfications
