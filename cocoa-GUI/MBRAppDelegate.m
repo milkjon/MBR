@@ -27,13 +27,13 @@
 	return result;
 }
 
-- (void) getRequests
+- (void) fetchRequests
 {	
 	// Add new requests to the array.
 
 	NSLog(@"get requests");
 	
-	if (! serverTask_) return;
+	//	if (! serverTask_) return;
 	
 	NSLog(@"check requests");
 	NSString *s = @"http://localhost:15800/new-requests/";
@@ -101,7 +101,7 @@
 - (IBAction) updateRequests: (id) sender
 {
 	NSLog(@"update Requests");
-	[self getRequests];
+	[self fetchRequests];
 }
 
 - (IBAction) startServer: (id) sender
@@ -134,22 +134,7 @@
 	NSLog(@"didFinishLaunching");
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
-/*	
-	// Create two dummy objects and add them to the list
-	MBTune *tune1 = [[[MBTune alloc] init] autorelease];
-	[tune1 setTrackID: @"F36B634931C2E9A0"];
-	[tune1 setTitle: @"When Summer Comes"];
-	[tune1 setArtist: @"Pepper"];
-	[tune1 setLength: @"3:16"];
-	[tune1 setRequester: @"John"];
-	
-	MBTune *tune2 = [[[MBTune alloc] init] autorelease];
-	[tune2 setTrackID: @"57802A1965D11511"];
-	[tune2 setTitle: @"Parachute"];
-	[tune2 setArtist: @"Sean Lennon"];
-	[tune2 setLength: @"3:19"];
-	[tune2 setRequester: @"Paul"];	
-	
+/*		
 	[self willChangeValueForKey: kRequests];
 	[requests addObject: tune1];
 	[requests addObject: tune2];
@@ -160,14 +145,13 @@
 	// Select playlist that is saved to prefs.
 }
 
-
 - (id) init
 {
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(getRequests) userInfo: nil repeats: YES];
+		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
 		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];

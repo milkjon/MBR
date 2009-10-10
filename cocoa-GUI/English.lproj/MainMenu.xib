@@ -1925,18 +1925,18 @@
 								<int key="NSPeriodicInterval">25</int>
 							</object>
 						</object>
-						<object class="NSButton" id="1025157233">
+						<object class="NSButton" id="423426616">
 							<reference key="NSNextResponder" ref="273937983"/>
 							<int key="NSvFlags">268</int>
 							<string key="NSFrame">{{14, 12}, {138, 32}}</string>
 							<reference key="NSSuperview" ref="273937983"/>
 							<bool key="NSEnabled">YES</bool>
-							<object class="NSButtonCell" key="NSCell" id="458228735">
+							<object class="NSButtonCell" key="NSCell" id="720023371">
 								<int key="NSCellFlags">-2080244224</int>
 								<int key="NSCellFlags2">134217728</int>
 								<string key="NSContents">Get Next Songs</string>
 								<reference key="NSSupport" ref="518803930"/>
-								<reference key="NSControlView" ref="1025157233"/>
+								<reference key="NSControlView" ref="423426616"/>
 								<int key="NSButtonFlags">-2038284033</int>
 								<int key="NSButtonFlags2">1</int>
 								<string key="NSAlternateContents"/>
@@ -2798,7 +2798,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">getNextSongs:</string>
 						<reference key="source" ref="976324537"/>
-						<reference key="destination" ref="1025157233"/>
+						<reference key="destination" ref="423426616"/>
 					</object>
 					<int key="connectionID">610</int>
 				</object>
@@ -2808,7 +2808,7 @@
 						<reference key="source" ref="976324537"/>
 						<reference key="destination" ref="506703920"/>
 					</object>
-					<int key="connectionID">611</int>
+					<int key="connectionID">613</int>
 				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -3870,7 +3870,7 @@
 							<reference ref="321345471"/>
 							<reference ref="554780798"/>
 							<reference ref="553533465"/>
-							<reference ref="1025157233"/>
+							<reference ref="423426616"/>
 							<reference ref="506703920"/>
 						</object>
 						<reference key="parent" ref="818718300"/>
@@ -4097,6 +4097,25 @@
 						<reference key="parent" ref="331658842"/>
 					</object>
 					<object class="IBObjectRecord">
+						<int key="objectID">605</int>
+						<reference key="object" ref="874284311"/>
+						<reference key="parent" ref="555216537"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">608</int>
+						<reference key="object" ref="423426616"/>
+						<object class="NSMutableArray" key="children">
+							<bool key="EncodedWithXMLCoder">YES</bool>
+							<reference ref="720023371"/>
+						</object>
+						<reference key="parent" ref="273937983"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">609</int>
+						<reference key="object" ref="720023371"/>
+						<reference key="parent" ref="423426616"/>
+					</object>
+					<object class="IBObjectRecord">
 						<int key="objectID">601</int>
 						<reference key="object" ref="506703920"/>
 						<object class="NSMutableArray" key="children">
@@ -4109,25 +4128,6 @@
 						<int key="objectID">602</int>
 						<reference key="object" ref="99237166"/>
 						<reference key="parent" ref="506703920"/>
-					</object>
-					<object class="IBObjectRecord">
-						<int key="objectID">605</int>
-						<reference key="object" ref="874284311"/>
-						<reference key="parent" ref="555216537"/>
-					</object>
-					<object class="IBObjectRecord">
-						<int key="objectID">608</int>
-						<reference key="object" ref="1025157233"/>
-						<object class="NSMutableArray" key="children">
-							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="458228735"/>
-						</object>
-						<reference key="parent" ref="273937983"/>
-					</object>
-					<object class="IBObjectRecord">
-						<int key="objectID">609</int>
-						<reference key="object" ref="458228735"/>
-						<reference key="parent" ref="1025157233"/>
 					</object>
 				</object>
 			</object>
@@ -4732,7 +4732,7 @@
 				</object>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">611</int>
+			<int key="maxID">613</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">
