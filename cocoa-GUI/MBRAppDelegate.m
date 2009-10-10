@@ -27,7 +27,7 @@
 	return result;
 }
 
-- (void) checkRequests
+- (void) getRequests
 {	
 	// Add new requests to the array.
 
@@ -161,7 +161,7 @@
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
+		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(getRequests) userInfo: nil repeats: YES];
 		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];
