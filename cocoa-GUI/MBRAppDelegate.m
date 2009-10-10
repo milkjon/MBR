@@ -76,6 +76,7 @@
 	NSString *playlist = @"radio";
 	NSString *trackID = [track trackID];
 	
+	[iTunes_ addID: trackID toPlaylist: playlist];
 }
 
 - (void) checkRequests
@@ -106,6 +107,7 @@
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
+	NSArray *songList = [iTunes_ nextFive];
 	NSMutableString *queryString = [NSMutableString string];
 	
 	for (int i = 0;   i < [songList count] && i < 5; i++) {
@@ -125,6 +127,7 @@
 		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
 		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 		
+		iTunes_ = [[MBiTunes alloc] init];
 	}
 	return self;
 }

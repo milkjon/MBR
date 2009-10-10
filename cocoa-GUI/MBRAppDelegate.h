@@ -6,12 +6,14 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import "MBiTunes.h"
 
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *requests;
 	NSTimer *requestCheckTimer_;
 	NSTimer *songQueryTimer_;
 	
+	MBiTunes *iTunes_;
 
 	IBOutlet NSArrayController *arrayController;
 	IBOutlet NSTableView *tableView;
