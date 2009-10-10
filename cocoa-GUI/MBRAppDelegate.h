@@ -22,6 +22,7 @@
 }
 - (IBAction) addToiTunesPlaylist: (id) sender;
 - (IBAction) getNextSongs: (id) sender;
+- (IBAction) updateRequests: (id) sender;
 - (IBAction) startServer: (id) sender;
 - (IBAction) stopServer: (id) sender;
 

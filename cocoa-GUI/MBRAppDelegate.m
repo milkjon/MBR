@@ -31,10 +31,11 @@
 {	
 	// Add new requests to the array.
 
+	NSLog(@"get requests");
+	
 	if (! serverTask_) return;
 	
 	NSLog(@"check requests");
-	return;
 	NSString *s = @"http://localhost:15800/new-requests/";
 	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
 	NSLog(result);
@@ -95,6 +96,12 @@
 	}
 	
 	[self _makeWebRequest: queryString];
+}
+
+- (IBAction) updateRequests: (id) sender
+{
+	NSLog(@"update Requests");
+	[self getRequests];
 }
 
 - (IBAction) startServer: (id) sender
