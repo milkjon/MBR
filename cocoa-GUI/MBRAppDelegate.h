@@ -16,7 +16,6 @@
 	IBOutlet NSArrayController *arrayController;
 	IBOutlet NSTableView *tableView;
 }
-- (IBAction) add: (id) sender;
 - (IBAction) addToiTunesPlaylist: (id) sender;
 - (IBAction) getNextSongs: (id) sender;
 

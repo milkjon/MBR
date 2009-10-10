@@ -50,18 +50,8 @@
 
 }
 
-- (IBAction) add: (id) sender
-{
-	NSLog(@"add");
 	
-	MBTune *tune = [[[MBTune alloc] init] autorelease];
-	[tune setTitle: @"Lipsill"];
-	[tune setArtist: @"Dungen"];
-	[tune setRequestTime: [NSDate date]];
 	
-	[self willChangeValueForKey: kRequests];
-	[requests addObject: tune];	
-	[self didChangeValueForKey: kRequests];
 }
 
 - (IBAction) addToiTunesPlaylist: (id) sender
