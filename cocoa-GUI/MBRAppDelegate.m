@@ -27,38 +27,6 @@
 	return result;
 }
 
-- (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
-{
-	NSLog(@"didFinishLaunching");
-	
-	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
-	
-	// Create two dummy objects and add them to the list
-	MBTune *tune1 = [[[MBTune alloc] init] autorelease];
-	[tune1 setTrackID: @"F36B634931C2E9A0"];
-	[tune1 setTitle: @"When Summer Comes"];
-	[tune1 setArtist: @"Pepper"];
-	[tune1 setLength: @"3:16"];
-	[tune1 setRequester: @"John"];
-
-	MBTune *tune2 = [[[MBTune alloc] init] autorelease];
-	[tune2 setTrackID: @"57802A1965D11511"];
-	[tune2 setTitle: @"Parachute"];
-	[tune2 setArtist: @"Sean Lennon"];
-	[tune2 setLength: @"3:19"];
-	[tune2 setRequester: @"Paul"];	
-	
-	[self willChangeValueForKey: kRequests];
-	[requests addObject: tune1];
-	[requests addObject: tune2];
-	[self didChangeValueForKey: kRequests];
-	
-	// Get playlists from iTunes
-	// Update Popup - button
-	// Select playlist that is saved to prefs.
-
-}
-
 - (void) checkRequests
 {	
 	// Add new requests to the array.
@@ -142,6 +110,38 @@
 	[serverTask_ terminate];
 	[serverTask_ release];
 }
+
+- (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
+{
+	NSLog(@"didFinishLaunching");
+	
+	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
+/*	
+	// Create two dummy objects and add them to the list
+	MBTune *tune1 = [[[MBTune alloc] init] autorelease];
+	[tune1 setTrackID: @"F36B634931C2E9A0"];
+	[tune1 setTitle: @"When Summer Comes"];
+	[tune1 setArtist: @"Pepper"];
+	[tune1 setLength: @"3:16"];
+	[tune1 setRequester: @"John"];
+	
+	MBTune *tune2 = [[[MBTune alloc] init] autorelease];
+	[tune2 setTrackID: @"57802A1965D11511"];
+	[tune2 setTitle: @"Parachute"];
+	[tune2 setArtist: @"Sean Lennon"];
+	[tune2 setLength: @"3:19"];
+	[tune2 setRequester: @"Paul"];	
+	
+	[self willChangeValueForKey: kRequests];
+	[requests addObject: tune1];
+	[requests addObject: tune2];
+	[self didChangeValueForKey: kRequests];
+*/
+	// Get playlists from iTunes
+	// Update Popup - button
+	// Select playlist that is saved to prefs.
+}
+
 
 - (id) init
 {
