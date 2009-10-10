@@ -14,18 +14,20 @@ import os.path, string, unicodedata, time, os, sys, urlparse, cgi, zlib, gc
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 # local imports
-import iTunesLibrary
-import Debug
+import iTunesLibrary, Statistics, Debug
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Globals
 #----------------------------------------------------------------------------------------------------------------------#
-global Library, Config
+global Library, Config, PlayStats, RequestStats
 
 Library = None
 Config = {}
 
-global Hosts, Requests, NewRequests, History
+PlayStats = Statistics.PlayedStatistics()
+RequestStats = Statistics.RequestStatistics()
+
+global Hosts, Requests, NewRequests, History, SongQueue
 # Hosts dictionary - all remote hosts (users) that have made requests
 #	Contents:
 #		keys:		IP-address of host
@@ -49,6 +51,11 @@ NewRequests = []
 #	Contents:
 #		list[ (timestamp, songID1, requestID1), (timestamp, songID2, requestID2), ... ]
 History = []
+
+# SongQueue list - list of songID's in the queue to be played next
+#	Contents:
+#		list[ (songID1, requestID1), (songID2, requestID2), ... ]
+SongQueue = []
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Load configuration
@@ -162,20 +169,23 @@ class MBRadio(BaseHTTPRequestHandler):
 		#  -----------------------------------------------------------
 		#	/new-requests			Locally				Query
 		#	/now-playing			Locally				Set
+		#	/coming-up				Locally				Set
 		#	/reload-library			Locally				Action
 		#	/reload-config			Locally				Action
 		#	/set-config				Locally				Set
 		#	/terminate				Locally				Action
 		#	/search					Remote webserver	Query
 		#	/requests				Remote webserver	Query
+		#	/queue					Remote webserver	Query
 		#	/history				Remote webserver	Query
+		#	/stats-top				Remote webserver	Query
 		#	/time					Remote webserver	Query
 		#---------------------------------------------------------------------------------------------------------------
 		
 		# is the client in the list of allowed clients?
-		if not (self.client_address[0] in Config['AllowedClients'] \
-				or self.address_string() in Config['AllowedClients']):
-			self.sendError('Unauthorized')
+		if not self.client_address[0] in Config['AllowedClients'] \
+					and not self.address_string() in Config['AllowedClients']:
+			self.sendError('Unauthorized', 401)
 			return
 		
 		# split the request into the "file name" and the "query string"
@@ -216,16 +226,22 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# only answer requests from the localhost
 			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
+				self.sendError('Unauthorized', 401)
 				return
 			
 			clear = 'yes'
-			order = 'newest'
-			if not args is None:
-				if args.has_key('clear') and args['clear'] and args['clear'][0] in ('yes','no'):
+			try:
+				if args['clear'][0] in ('yes','no'):
 					clear = args['clear'][0]
-				if args.has_key('order') and args['order'] and args['order'][0] in ('newest', 'oldest'):
+			except LookupError:
+				pass
+			
+			order = 'newest'
+			try:
+				if args['order'][0] in ('newest', 'oldest'):
 					order = args['order'][0]
+			except LookupError:
+				pass
 			
 			orderedRequests = list(NewRequests)
 			if order == 'newest':
@@ -266,7 +282,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# only answer requests from the localhost
 			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
+				self.sendError('Unauthorized', 401)
 				return
 			
 			if args is None or not args.has_key('songid') or not args['songid']:
@@ -276,31 +292,105 @@ class MBRadio(BaseHTTPRequestHandler):
 			try:
 				songID = args['songid'][0]
 				
-				if not Library.songExists(songID):
+				thisSong = Library.getSong(songID)
+				if not thisSong:
 					self.sendData('INVALID')
 					return
 
 				# check that it's not already the most recent item in the list:
-				if History and History[-1][1] == songID:
-					self.sendData('DUPLICATE')
-					return
+				try:
+					if History[-1][1] == songID:
+						self.sendData('DUPLICATE')
+						return
+				except LookupError:
+					pass
 				
 				# let's assume that if there is a request for this songID sometime in the last 20 minutes, that
 				# this song was 'fulfilling' that request.
 				twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
+				
+				foundReq = [reqID for (reqID, req) in Requests.items() \
+								if req['songID'] == songID and req['time'] >= twentyMinAgo \
+									and req['status'] != 'played']
 				try:
-					foundReq = [reqID for (reqID, req) in Requests.items() \
-										if req['songID'] == songID and req['time'] >= twentyMinAgo \
-											and req['status'] == 'waiting']
 					requestID = foundReq[0]
 					Requests[requestID]['status'] = 'played'
-				except:
+				except LookupError:
 					requestID = None
 				
 				theTime = long(time.time())
 				History.append( (theTime, songID, requestID) )
 				LogSong(theTime, songID, requestID)
+				PlayStats.addSong({'artist':thisSong['artist'], 'title':thisSong['title'],
+										'genre':thisSong['genre'], 'time':theTime})
+										
 				self.sendData('OK')
+				
+			except:
+				self.sendData('FAIL')
+				
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/coming-up'      - LOCALHOST ONLY -
+		#
+		#	Tells the proxy program what the next few songs in the playlist queue are.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE		REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		songX=		string		Y		library ID of song number X in the queue. X = 1, 2, 3, ...
+		#
+		#	Returns plain text:
+		#		'OK'			song recorded into history
+		#		'INVALID'		one or more of the specified song id's is invalid
+		#		'FAIL'			unknown error occured
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/coming-up':
+			global SongQueue
+			
+			# only answer requests from the localhost
+			if self.client_address[0] != Config['LocalHost']:
+				self.sendError('Unauthorized', 401)
+				return
+			
+			if args is None:
+				self.sendError('Incomple query parameters')
+				return
+			
+			try:
+				queueList = []
+				invalidSongIDs = []
+				for x in range(1,5):
+					try:
+						songX = 'song' + str(x)
+						songID = args[songX][0]
+					except LookupError:
+						break
+					
+					if Library.songExists(songID):
+					
+						# let's assume that if there is a request for this songID sometime in the last 20 minutes, that
+						# this song was 'fulfilling' that request.
+						twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
+						try:
+							foundReq = [reqID for (reqID, req) in Requests.items() \
+												if req['songID'] == songID and req['time'] >= twentyMinAgo \
+													and req['status'] != 'played']
+							requestID = foundReq[0]
+							Requests[requestID]['status'] = 'queued'
+						except:
+							requestID = None
+					
+						queueList.append( (songID, requestID) )
+						
+					else:
+						invalidSongIDs.append(songX + '=' + songID)
+					
+				SongQueue = queueList
+				
+				if invalidSongIDs:
+					self.sendData('INVALID\n' + string.join(invalidSongIDs,'\n'))
+				else:
+					self.sendData('OK')
 				
 			except:
 				self.sendData('FAIL')
@@ -321,7 +411,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/reload-library':
 			# only answer requests from the localhost
 			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
+				self.sendError('Unauthorized', 401)
 				return
 			
 			try:
@@ -345,7 +435,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/reload-config':
 			# only answer requests from the localhost
 			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
+				self.sendError('Unauthorized', 401)
 				return
 				
 			try:
@@ -381,7 +471,7 @@ class MBRadio(BaseHTTPRequestHandler):
 		elif command == '/set-config':
 			# only answer requests from the localhost
 			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized')
+				self.sendError('Unauthorized', 401)
 				return
 				
 			try:
@@ -395,7 +485,7 @@ class MBRadio(BaseHTTPRequestHandler):
 						valUCStr = unicode(val)
 						if valUCStr.isnumeric():
 							val = long(valUCStr)
-					except:
+					except ValueError:
 						pass
 					
 					Config[configOpt] = val
@@ -470,7 +560,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			searchBy = args['by'][0].lower()
 			searchFor = args['for'][0]
 			
-			if not searchBy in ['letter','artist','title','genre','any']:
+			if not searchBy in ('letter','artist','title','genre','any'):
 				self.sendError('Unknown search parameter by=' + searchBy)
 				return
 			
@@ -478,14 +568,14 @@ class MBRadio(BaseHTTPRequestHandler):
 				numResults = int(args['results'][0])
 				if numResults < 0:
 					numResults = 100
-			except:
+			except (LookupError, ValueError):
 				numResults = 100
 				
 			try:
 				startingFrom = int(args['starting'][0])
 				if startingFrom < 0:
 					startingFrom = 0
-			except:
+			except (LookupError, ValueError):
 				startingFrom = 0
 			
 			# convert sort string "field1-dir,field2-dir..." to list: [(field1,dir), (field2,dir), ...]
@@ -579,6 +669,11 @@ class MBRadio(BaseHTTPRequestHandler):
 		#		results=	string|integer	Y		if results=='all', returns all requests
 		#											if results==X, where X is an integer, returns the most recent X
 		#												requests made to the server
+		#
+		#		status=		string			N		if status=='s1[,s2[,...]]'  where s in (waiting|queued|played)
+		#												returns those requests with the specified status
+		#											if status is empty, returns all requests
+		#
 		#		compress=	string	 		N		If compress == "", don't compress.
 		#											If compress == "gzip", return results gzip'ed
 		#
@@ -599,8 +694,19 @@ class MBRadio(BaseHTTPRequestHandler):
 				self.sendError('Incomple query parameters:  /requests?results=X  required')
 				return
 			
+			# status string "type1,type2,..." to list: [type1,type2,...]
+			filterStatus = None
+			if args.has_key('status') and args['status']:
+				filterStatus = [term for term in args['status'][0].lower().split(',') \
+										if term in ('played','queued','waiting')]
+
+			if filterStatus:
+				requestList = [(info['time'], reqID) for (reqID,info) in Requests.items()
+									if info['status'] in filterStatus]
+			else:
+				requestList = [(info['time'], reqID) for (reqID,info) in Requests.items()]
+			
 			# sort requests by timestamp desc:
-			requestList = [(info['time'], reqID) for (reqID,info) in Requests.items()]
 			requestList.sort()
 			requestList.reverse()
 			requestList = [pair[1] for pair in requestList]
@@ -608,11 +714,13 @@ class MBRadio(BaseHTTPRequestHandler):
 			if args['results'][0] == 'all':
 				numResults = len(requestList)
 			else:
-				numResults = int(args['results'][0])
+				try:
+					numResults = int(args['results'][0])
+				except ValueError:
+					numResults = 10
+				
 				if numResults <= 0:
 					numResults = 10
-				if numResults > len(requestList):
-					numResults = len(requestList)
 			
 			# take the slice:
 			slicedRequestList = requestList[0:numResults]
@@ -674,12 +782,10 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			try:
 				numResults = int(args['results'][0])
-			except:
+			except ValueError:
 				numResults = 1
 			if numResults <= 0:
 				numResults = 1
-			if numResults > len(historyList):
-				numResults = len(historyList)
 			
 			# take the slice:
 			slicedHistoryList = historyList[0:numResults]
@@ -687,7 +793,7 @@ class MBRadio(BaseHTTPRequestHandler):
 			# package the song list as XML
 			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
-								'<historylist count=\"' + str(len(slicedHistoryList)) + '\">\n' + \
+								'<historylist count="' + str(len(slicedHistoryList)) + '">\n' + \
 								string.join([PackageHistoryItem(timestamp, songID, reqID) \
 												for (timestamp, songID, reqID) in slicedHistoryList], '\n') + \
 								'</historylist>'
@@ -699,7 +805,139 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			# send it back
 			self.sendData(packagedResults, contentType)
+		
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/queue'
+		#
+		#	This interface is used to get a list of upcoming (queued) songs.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form: 
+		#		<queuelist count="(count)">
+		#			<queued>
+		#				<song id="(songID)">
+		#					<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#				</song>
+		#			[ optional: ]
+		#				<requested>
+		#					<time></time><host></host><requestedby></requestedby><dedication></dedication><status></status>
+		#				</requested>
+		#			[ end optional ]
+		#			</queued>
+		#			...
+		#		</queuelist>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/queue':
+
+			# package the queue list as XML
+			contentType = 'text/xml'
+			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<queuelist count="' + str(len(SongQueue)) + '">\n' + \
+								string.join([PackageQueueItem(songID, reqID) \
+												for (songID, reqID) in SongQueue], '\n') + \
+								'</queuelist>'
 			
+			# gzip the results?
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
+
+		
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/stats-top'
+		#
+		#	This interface is used to get a list of recently played songs to display on the website.
+		#	History results are always returned in descending order by the time the song was played.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		get=		string			Y		One of ('artist','title','genre')
+		#		from=		string			Y		One of ('requests','history')
+		#		days=		integer			N		
+		#		results=	integer			Y		Specifies the number of results to return
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns XML of the form: 
+		#		<toplist list_type="(from parameter)" entry_type="(get parameter)">
+		#			<entry>
+		#				<name></name><count></count>
+		#			</entry>
+		#			...
+		#		<toplist>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/stats-top':
+		
+			if args is None:
+				self.sendError('Incomple query parameters')
+				return
+				
+			try:
+				numResults = args['results'][0]
+				getThis = args['get'][0]
+				fromThis = args['from'][0]
+			except LookupError:
+				self.sendError('Incomple query parameters')
+				return
+			
+			numDays = 'all'
+			try:
+				numDays = int(args['days'][0])
+			except (LookupError, ValueError):
+				pass
+			
+			try:
+				numResults = int(numResults)
+			except ValueError:
+				numResults = 1
+			
+			if fromThis == 'requests':
+				statObj = RequestStats
+			elif fromThis == 'history':
+				statObj = PlayStats
+			else:
+				self.sendError('Invalid query parameter: from=' + fromThis)
+				return
+				
+			if getThis == 'artist':
+				resultList = statObj.getTopArtists(numResults, numDays)
+			elif getThis == 'title':
+				resultList = statObj.getTopSongs(numResults, numDays)
+			elif getThis == 'genre':
+				resultList = statObj.getTopGenres(numResults, numDays)
+			else:
+				self.sendError('Invalid query parameter: get=' + getThis)
+				return
+			
+			# package the result list as XML
+			entryList = []
+			for entry in resultList:
+				entryList.append('<entry><name>' + SafeXML(entry[0]) + '</name>' + \
+									'<count>' + str(entry[1]) + '</count></entry>')
+			
+			contentType = 'text/xml'
+			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
+								'<toplist count="' + str(len(entryList)) + '" list_type="' + fromThis + '" ' + \
+									'entry_type="' + getThis + '">\n' + \
+								string.join(entryList, '\n') + \
+								'</toplist>'
+			
+			# gzip the results?
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
 			
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/time'
@@ -807,9 +1045,9 @@ class MBRadio(BaseHTTPRequestHandler):
 		try:
 			
 			# is the client in the list of allowed clients?
-			if not (self.client_address[0] in Config['AllowedClients'] \
-					or self.address_string() in Config['AllowedClients']):
-				self.sendError('Unauthorized')
+			if not self.client_address[0] in Config['AllowedClients'] \
+					and not self.address_string() in Config['AllowedClients']:
+				self.sendError('Unauthorized', 401)
 				return
 			
 			# split the request into the "file name" and the "query string"
@@ -923,6 +1161,8 @@ class MBRadio(BaseHTTPRequestHandler):
 				
 				# log the request
 				LogRequest(requestID)
+				RequestStats.addSong({'artist':requestedSong['artist'], 'title':requestedSong['title'],
+										'genre':requestedSong['genre'], 'time':requestTime})
 
 				# send a response back in XML
 				response = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
@@ -965,9 +1205,7 @@ def PackageSong(songID):
 def PackageRequest(requestID):
 	# packages the request info as an XML string
 	
-	if requestID is None:
-		return ""
-	if not Requests.has_key(requestID):
+	if requestID is None or not requestID in Requests:
 		return ""
 	
 	reqInfo = Requests[requestID]
@@ -990,25 +1228,45 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 	if not Library.songExists(songID):
 		return ''
 		
-	packageStr = 	'<played time=\"' + str(timePlayed) + '\">' + \
-						PackageSong(songID)
+	packageList = ['<played time=\"', str(timePlayed), '\">', PackageSong(songID)]
 					
-	if not requestID is None and Requests.has_key(requestID):
+	if not requestID is None and requestID in Requests:
 		reqInfo = Requests[requestID]
 		
-		packageStr +=	'<requested>' + \
-						'<time>' + str(reqInfo['time']) + '</time>' + \
-						'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
-						'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
-						'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
-						'<status>' + reqInfo['status'] + '</status>' + \
-						'</requested>'
+		packageList.extend(['<requested>',
+							'<time>', str(reqInfo['time']), '</time>',
+							'<host>', SafeXML(reqInfo['host']), '</host>', 
+							'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
+							'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
+							'<status>', reqInfo['status'], '</status>', '</requested>'])
 	
-	packageStr += '</played>'
+	packageList.append('</played>')
+	return string.join(packageList,'')
 	
-	return packageStr
+#enddef PackageHistoryItem
+
+def PackageQueueItem(songID, requestID):
+	# packages a queue item as an XML string
 	
-#enddef PackageRequestedInfo
+	if not Library.songExists(songID):
+		return ''
+		
+	packageList = 	['<queued>', PackageSong(songID)]
+					
+	if not requestID is None and requestID in Requests:
+		reqInfo = Requests[requestID]
+		
+		packageList.extend(['<requested>',
+							'<time>', str(reqInfo['time']), '</time>',
+							'<host>', SafeXML(reqInfo['host']), '</host>',
+							'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
+							'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
+							'<status>', reqInfo['status'], '</status>', '</requested>'])
+	
+	packageList.append('</queued>')
+	return string.join(packageList, '')
+	
+#enddef PackageQueueItem
 
 def SafeXML(theString):
 	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
@@ -1049,7 +1307,7 @@ def MakeSortingTuple(songID, sortBy):
 #----------------------------------------------------------------------------------------------------------------------#
 def LogRequest(requestID):
 	
-	if not Requests.has_key(requestID):
+	if not requestID in Requests:
 		return
 		
 	reqInfo = Requests[requestID]
@@ -1095,7 +1353,7 @@ def LogSong(timePlayed, songID, requestID):
 		return
 		
 	# make the log entry as XML
-	playedXML =	PackageHistoryItem(timePlayed, songID, requestID)
+	playedXML =	PackageHistoryItem(timePlayed, songID, requestID) + '\n'
 	
 	# try to write to the xml file
 	try:
@@ -1111,9 +1369,9 @@ def File_InsertAtLine(fileName, newLine, atLineNumber):
 	lines = []
 	f = fileinput.FileInput(fileName, inplace=1)
 	for i in range(1, atLineNumber):
-		lines.append(f.readline().rstrip())
+		lines.append(f.readline())
 	lines.append(newLine)
-	sys.stdout.write(string.join(lines, '\n'))
+	sys.stdout.write(string.join(lines, ''))
 	
 	for line in f:
 		sys.stdout.write(line)
@@ -1139,6 +1397,11 @@ def File_CheckOrMakeDefault(fileName, defaultContent):
 #enddef File_CheckOrMakeDefault
 
 #----------------------------------------------------------------------------------------------------------------------#
+#  Statistics Support Functions
+#----------------------------------------------------------------------------------------------------------------------#
+
+
+#----------------------------------------------------------------------------------------------------------------------#
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
 def main():
@@ -1149,6 +1412,9 @@ def main():
 		LoadConfig()
 		LoadLibrary()
 		
+		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
+		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
+
 		server = HTTPServer(('', Config['Port']), MBRadio)
 		Debug.out('Starting MBRadio Webserver')
 		server.serve_forever()
