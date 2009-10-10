@@ -111,6 +111,14 @@
 	[serverTask_ release];
 }
 
+#pragma mark Notfications
+
+- (void)applicationWillTerminate:(NSNotification *)aNotification
+{
+	NSLog(@"willTerminate");
+	[self stopServer:nil];
+}
+
 - (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
 {
 	NSLog(@"didFinishLaunching");
@@ -163,8 +171,6 @@
 	[requestCheckTimer_ release];
 	[songQueryTimer_ invalidate];
 	[songQueryTimer_ release];
-	[serverTask_  terminate];
-	[serverTask_ release];
 	[requests release];
 	[iTunes_ release];
 	[super dealloc];
