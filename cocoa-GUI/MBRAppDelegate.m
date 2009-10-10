@@ -14,8 +14,16 @@
 
 @implementation MBRAppDelegate
 
+- (NSString*) _runAppleScript: (NSString *) source
+{
+	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
+	NSDictionary *err=nil;
+	NSString *result = [[script executeAndReturnError: &err] stringValue];
+	if (err) return [NSString stringWithFormat: @"ERROR, %@", err];
+	return result;
+}
 
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification 
+- (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
 {
 	NSLog(@"didFinishLaunching");
 	
@@ -85,7 +93,6 @@
 	
 	NSString *source = [NSString stringWithFormat: addToiTunesTemplate_, trackID, playlist]; 
 	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
-	
 	NSDictionary *error = nil;
 	[script executeAndReturnError: &error];
 	
@@ -98,6 +105,7 @@
 	// Add new requests to the array.
 	
 	NSLog(@"check requests");
+	return;
 	NSString *s = @"http://localhost:15800/new-requests/";
 	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
 	NSLog(result);
@@ -108,15 +116,29 @@
 
 - (void) querySong
 {
-	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: getTrackTemplate_] autorelease];
-	NSDictionary *err=nil;
-	NSString *ident = [[script executeAndReturnError: &err] stringValue];
-	NSLog(@"Playing ID: %@, err: %@", ident, err);
+	NSString *ident = [self _runAppleScript: getTrackTemplate_];
+	NSLog(@"Playing ID: %@", ident);
 	
 	// Make the http request
 	NSString *str = [NSString stringWithFormat: @"http://localhost:15800/now-playing?songid=%@", ident];
-	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
-	NSLog(result);
+	//NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
+	//NSLog(result);
+}
+
+- (IBAction) getNextSongs: (id) sender
+{
+	NSLog(@"get next songs");	
+	NSString *upcoming = [self _runAppleScript: nextTracksTemplate_];
+	NSArray *songList = [upcoming componentsSeparatedByString: @"\r"];	
+	NSMutableString *queryString = [NSMutableString string];
+	
+	for (int i = 0;   i < [songList count] && i < 5; i++) {
+		NSString *item = [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]];
+		[queryString appendString: item];
+	}
+	
+	NSLog(@"upcoming: %@", songList);	
+	NSLog(@"queryString: %@", queryString);		
 }
 
 - (id) init
@@ -124,13 +146,15 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
-		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
+		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
+		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 		
 		addToiTunesTemplate_ = [[NSString alloc] initWithContentsOfFile: 
-				[[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
+			[[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
 		getTrackTemplate_ = [[NSString alloc] initWithContentsOfFile: 
-				[[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
+			[[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
+		nextTracksTemplate_ = [[NSString alloc] initWithContentsOfFile:
+			[[NSBundle mainBundle] pathForResource:@"getNextSongs3" ofType:@"applescript"]];
 	}
 	return self;
 }
@@ -142,6 +166,8 @@
 	[requestCheckTimer_ release];
 	[songQueryTimer_ invalidate];
 	[songQueryTimer_ release];
+	[addToiTunesTemplate_ release];
+	[getTrackTemplate_ release];
 	[super dealloc];
 }
 
