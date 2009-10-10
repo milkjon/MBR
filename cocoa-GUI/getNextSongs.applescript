@@ -13,5 +13,5 @@ tell application "iTunes"
 	if e > (count of tracks of pl) then
 		set e to count of tracks of pl
 	end if
-	get items i thru e of (get name of tracks of pl)
+	get items i thru e of (get persistent ID of tracks of pl)
 end tell
