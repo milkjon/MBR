@@ -48,8 +48,8 @@ def	String2SafeAsciiWordList(theString):
 def FirstAlphanumericChar(theString):
 	asciiStr = SafeAscii(theString).lower()
 	for c in theString:
-		if c.isalnum():
-			return c.lower()
+		if c in string.ascii_lowercase:
+			return c
 	return '0'
 
 class MusicLibrary:
