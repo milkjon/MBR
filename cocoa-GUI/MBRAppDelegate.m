@@ -59,9 +59,32 @@
 
 }
 
+- (void) checkRequests
+{	
+	// Add new requests to the array.
 	
+	NSLog(@"check requests");
+	return;
+	NSString *s = @"http://localhost:15800/new-requests/";
+	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
+	NSLog(result);
+	
+	// parse the result and update the array
 	
 }
+
+- (void) querySong
+{
+	NSString *ident = [iTunes_ currentlyPlaying];
+	NSLog(@"Playing ID: %@", ident);
+	
+	// Make the http request
+	NSString *str = [NSString stringWithFormat: @"now-playing?songid=%@", ident];
+	//NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
+	//NSLog(result);
+}
+
+#pragma mark IBActions
 
 - (IBAction) addToiTunesPlaylist: (id) sender
 {
@@ -88,30 +111,7 @@
 	[iTunes_ addID: trackID toPlaylist: playlist];
 }
 
-- (void) checkRequests
-{	
-	// Add new requests to the array.
-	
-	NSLog(@"check requests");
-	return;
-	NSString *s = @"http://localhost:15800/new-requests/";
-	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
-	NSLog(result);
-	
-	// parse the result and update the array
-	
-}
 
-- (void) querySong
-{
-	NSString *ident = [self _runAppleScript: getTrackTemplate_];
-	NSLog(@"Playing ID: %@", ident);
-	
-	// Make the http request
-	NSString *str = [NSString stringWithFormat: @"http://localhost:15800/now-playing?songid=%@", ident];
-	//NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
-	//NSLog(result);
-}
 
 - (IBAction) getNextSongs: (id) sender
 {
@@ -124,8 +124,9 @@
 		[queryString appendString: item];
 	}
 	
-	NSLog(@"upcoming: %@", songList);	
-	NSLog(@"queryString: %@", queryString);		
+	[self _makeWebRequest: queryString];
+}
+
 - (IBAction) startServer: (id) sender
 {
 	NSLog(@"Start Server");
@@ -158,13 +159,14 @@
 
 - (void) dealloc
 {
-	[requests release];
 	[requestCheckTimer_ invalidate];
 	[requestCheckTimer_ release];
 	[songQueryTimer_ invalidate];
 	[songQueryTimer_ release];
 	[serverTask_  terminate];
 	[serverTask_ release];
+	[requests release];
+	[iTunes_ release];
 	[super dealloc];
 }
 

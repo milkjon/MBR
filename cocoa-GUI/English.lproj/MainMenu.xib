@@ -1343,6 +1343,7 @@
 						<object class="NSArray" key="dict.sortedKeys">
 							<bool key="EncodedWithXMLCoder">YES</bool>
 							<string>8306ED65-DE8B-46D4-9046-9D6F6D241047</string>
+							<string>CF060463-AB17-43D0-8617-3606D0ED6A51</string>
 							<string>NSToolbarFlexibleSpaceItem</string>
 							<string>NSToolbarSeparatorItem</string>
 							<string>NSToolbarSpaceItem</string>
@@ -1360,6 +1361,28 @@
 								<object class="NSCustomResource" key="NSToolbarItemImage">
 									<string key="NSClassName">NSImage</string>
 									<string key="NSResourceName">NSRefreshTemplate</string>
+								</object>
+								<nil key="NSToolbarItemTarget"/>
+								<nil key="NSToolbarItemAction"/>
+								<string key="NSToolbarItemMinSize">{0, 0}</string>
+								<string key="NSToolbarItemMaxSize">{0, 0}</string>
+								<bool key="NSToolbarItemEnabled">YES</bool>
+								<bool key="NSToolbarItemAutovalidates">YES</bool>
+								<int key="NSToolbarItemTag">-1</int>
+								<bool key="NSToolbarIsUserRemovable">YES</bool>
+								<int key="NSToolbarItemVisibilityPriority">0</int>
+							</object>
+							<object class="NSToolbarItem" id="874284311">
+								<object class="NSMutableString" key="NSToolbarItemIdentifier">
+									<characters key="NS.bytes">CF060463-AB17-43D0-8617-3606D0ED6A51</characters>
+								</object>
+								<string key="NSToolbarItemLabel">Stop Server</string>
+								<string key="NSToolbarItemPaletteLabel">Stop Server</string>
+								<string key="NSToolbarItemToolTip"/>
+								<nil key="NSToolbarItemView"/>
+								<object class="NSCustomResource" key="NSToolbarItemImage">
+									<string key="NSClassName">NSImage</string>
+									<string key="NSResourceName">NSStopProgressTemplate</string>
 								</object>
 								<nil key="NSToolbarItemTarget"/>
 								<nil key="NSToolbarItemAction"/>
@@ -1460,10 +1483,12 @@
 						<reference ref="697829295"/>
 						<reference ref="14849051"/>
 						<reference ref="974163492"/>
+						<reference ref="874284311"/>
 					</object>
 					<object class="NSMutableArray" key="NSToolbarIBDefaultItems">
 						<bool key="EncodedWithXMLCoder">YES</bool>
 						<reference ref="974163492"/>
+						<reference ref="874284311"/>
 						<reference ref="697829295"/>
 						<reference ref="14849051"/>
 					</object>
@@ -1880,18 +1905,18 @@
 								<int key="NSArrowPosition">2</int>
 							</object>
 						</object>
-						<object class="NSButton" id="176240186">
+						<object class="NSButton" id="506703920">
 							<reference key="NSNextResponder" ref="273937983"/>
 							<int key="NSvFlags">268</int>
 							<string key="NSFrame">{{14, 12}, {138, 32}}</string>
 							<reference key="NSSuperview" ref="273937983"/>
 							<bool key="NSEnabled">YES</bool>
-							<object class="NSButtonCell" key="NSCell" id="382178144">
+							<object class="NSButtonCell" key="NSCell" id="99237166">
 								<int key="NSCellFlags">-2080244224</int>
 								<int key="NSCellFlags2">134217728</int>
 								<string key="NSContents">Get Next Songs</string>
 								<reference key="NSSupport" ref="518803930"/>
-								<reference key="NSControlView" ref="176240186"/>
+								<reference key="NSControlView" ref="506703920"/>
 								<int key="NSButtonFlags">-2038284033</int>
 								<int key="NSButtonFlags2">129</int>
 								<string key="NSAlternateContents"/>
@@ -2737,9 +2762,25 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">getNextSongs:</string>
 						<reference key="source" ref="976324537"/>
-						<reference key="destination" ref="176240186"/>
+						<reference key="destination" ref="506703920"/>
 					</object>
 					<int key="connectionID">603</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">startServer:</string>
+						<reference key="source" ref="976324537"/>
+						<reference key="destination" ref="974163492"/>
+					</object>
+					<int key="connectionID">604</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">stopServer:</string>
+						<reference key="source" ref="976324537"/>
+						<reference key="destination" ref="874284311"/>
+					</object>
+					<int key="connectionID">607</int>
 				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -3788,6 +3829,7 @@
 							<reference ref="14849051"/>
 							<reference ref="697829295"/>
 							<reference ref="109799855"/>
+							<reference ref="874284311"/>
 						</object>
 						<reference key="parent" ref="818718300"/>
 					</object>
@@ -3800,7 +3842,7 @@
 							<reference ref="321345471"/>
 							<reference ref="554780798"/>
 							<reference ref="553533465"/>
-							<reference ref="176240186"/>
+							<reference ref="506703920"/>
 						</object>
 						<reference key="parent" ref="818718300"/>
 					</object>
@@ -4027,17 +4069,22 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">601</int>
-						<reference key="object" ref="176240186"/>
+						<reference key="object" ref="506703920"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="382178144"/>
+							<reference ref="99237166"/>
 						</object>
 						<reference key="parent" ref="273937983"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">602</int>
-						<reference key="object" ref="382178144"/>
-						<reference key="parent" ref="176240186"/>
+						<reference key="object" ref="99237166"/>
+						<reference key="parent" ref="506703920"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">605</int>
+						<reference key="object" ref="874284311"/>
+						<reference key="parent" ref="555216537"/>
 					</object>
 				</object>
 			</object>
@@ -4304,6 +4351,7 @@
 					<string>598.IBPluginDependency</string>
 					<string>601.IBPluginDependency</string>
 					<string>602.IBPluginDependency</string>
+					<string>605.IBPluginDependency</string>
 					<string>72.IBPluginDependency</string>
 					<string>72.ImportedFromIB2</string>
 					<string>73.IBPluginDependency</string>
@@ -4542,13 +4590,13 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{98, 311}, {626, 219}}</string>
+					<string>{{97, 313}, {626, 219}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{98, 311}, {626, 219}}</string>
+					<string>{{97, 313}, {626, 219}}</string>
 					<integer value="1"/>
 					<string>{{11, 666}, {480, 270}}</string>
 					<string>{3.40282e+38, 3.40282e+38}</string>
-					<string>{{110, 613}, {616, 0}}</string>
+					<string>{{102, 532}, {616, 0}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -4586,6 +4634,7 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>{{441, 355}, {110, 63}}</string>
+					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -4636,7 +4685,7 @@
 				</object>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">603</int>
+			<int key="maxID">607</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">
@@ -4651,9 +4700,13 @@
 							<string>add:</string>
 							<string>addToiTunesPlaylist:</string>
 							<string>getNextSongs:</string>
+							<string>startServer:</string>
+							<string>stopServer:</string>
 						</object>
 						<object class="NSMutableArray" key="dict.values">
 							<bool key="EncodedWithXMLCoder">YES</bool>
+							<string>id</string>
+							<string>id</string>
 							<string>id</string>
 							<string>id</string>
 							<string>id</string>
