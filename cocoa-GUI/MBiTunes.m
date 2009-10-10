@@ -44,7 +44,7 @@
 		currentlyPlayingScript_ = [[NSString alloc] initWithContentsOfFile: 
 								   [[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
 		nextTracksScript_ = [[NSString alloc] initWithContentsOfFile:
-							 [[NSBundle mainBundle] pathForResource:@"getNextSongs3" ofType:@"applescript"]];
+							 [[NSBundle mainBundle] pathForResource:@"getNextSongs" ofType:@"applescript"]];
 		addToiTunesScriptTemplate_ = [[NSString alloc] initWithContentsOfFile:
 									  [[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
 	}

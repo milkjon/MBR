@@ -10,7 +10,7 @@
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		256AC3DA0F4B6AC300CF3369 /* MBRAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 256AC3D90F4B6AC300CF3369 /* MBRAppDelegate.m */; };
 		695A7F85107579FF00F30201 /* XMLTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 695A7F84107579FF00F30201 /* XMLTest.m */; };
-		695AD4AD1080077C001B1514 /* getNextSongs3.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 695AD4AC1080077C001B1514 /* getNextSongs3.applescript */; };
+		695AD4AD1080077C001B1514 /* getNextSongs.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 695AD4AC1080077C001B1514 /* getNextSongs.applescript */; };
 		695AD58510810616001B1514 /* MBiTunes.m in Sources */ = {isa = PBXBuildFile; fileRef = 695AD58410810616001B1514 /* MBiTunes.m */; };
 		695AD5DB10812A3F001B1514 /* webserver.py in Resources */ = {isa = PBXBuildFile; fileRef = 695AD5D710812A3F001B1514 /* webserver.py */; };
 		695AD5DC10812A3F001B1514 /* Statistics.py in Resources */ = {isa = PBXBuildFile; fileRef = 695AD5D810812A3F001B1514 /* Statistics.py */; };
@@ -39,7 +39,7 @@
 		695A7F7F107579D700F30201 /* XMLTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = XMLTest; sourceTree = BUILT_PRODUCTS_DIR; };
 		695A7F83107579FF00F30201 /* XMLTest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XMLTest.h; sourceTree = "<group>"; };
 		695A7F84107579FF00F30201 /* XMLTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XMLTest.m; sourceTree = "<group>"; };
-		695AD4AC1080077C001B1514 /* getNextSongs3.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getNextSongs3.applescript; sourceTree = "<group>"; };
+		695AD4AC1080077C001B1514 /* getNextSongs.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getNextSongs.applescript; sourceTree = "<group>"; };
 		695AD58310810616001B1514 /* MBiTunes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBiTunes.h; sourceTree = "<group>"; };
 		695AD58410810616001B1514 /* MBiTunes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBiTunes.m; sourceTree = "<group>"; };
 		695AD5D710812A3F001B1514 /* webserver.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = webserver.py; path = ../requestProxy/webserver.py; sourceTree = SOURCE_ROOT; };
@@ -77,12 +77,12 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				695AD58310810616001B1514 /* MBiTunes.h */,
+				695AD58410810616001B1514 /* MBiTunes.m */,
 				256AC3D80F4B6AC300CF3369 /* MBRAppDelegate.h */,
 				256AC3D90F4B6AC300CF3369 /* MBRAppDelegate.m */,
 				69E4ACC1106A0AEC0021BAEB /* MBTune.h */,
 				69E4ACC2106A0AEC0021BAEB /* MBTune.m */,
-				695AD58310810616001B1514 /* MBiTunes.h */,
-				695AD58410810616001B1514 /* MBiTunes.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -175,7 +175,7 @@
 			children = (
 				6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */,
 				6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */,
-				695AD4AC1080077C001B1514 /* getNextSongs3.applescript */,
+				695AD4AC1080077C001B1514 /* getNextSongs.applescript */,
 			);
 			name = AppleScript;
 			sourceTree = "<group>";
@@ -243,7 +243,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				695AD4AD1080077C001B1514 /* getNextSongs3.applescript in Resources */,
+				695AD4AD1080077C001B1514 /* getNextSongs.applescript in Resources */,
 				6994AB4F107D4FE900CC6BCD /* addToiTunes.applescript in Resources */,
 				6994AB66107D6D3A00CC6BCD /* getCurrentTrack.applescript in Resources */,
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
