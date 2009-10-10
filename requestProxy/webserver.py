@@ -1415,16 +1415,22 @@ def main():
 		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
 		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
 
-		server = HTTPServer(('', Config['Port']), MBRadio)
-		Debug.out('Starting MBRadio Webserver')
-		server.serve_forever()
-		
 		Requests[1] = {'songID': 'F36B634931C2E9A0', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
 										'requestedBy': 'Jon', 'dedication': 'Erich' }
 		
 		Requests[2] = {'songID': '57802A1965D11511', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
 										'requestedBy': 'erich', 'dedication': 'Jon' }
 		
+		NewRequests.append(1)
+		NewRequests.append(2)
+		
+		RequestCount = 2
+
+		server = HTTPServer(('', Config['Port']), MBRadio)
+		Debug.out('Starting MBRadio Webserver')
+		server.serve_forever()
+		
+
 	
 	except (KeyboardInterrupt, SystemExit):
 		Debug.out('^C received, shutting down server')
