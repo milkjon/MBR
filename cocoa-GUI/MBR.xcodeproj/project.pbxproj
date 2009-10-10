@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		256AC3DA0F4B6AC300CF3369 /* MBRAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 256AC3D90F4B6AC300CF3369 /* MBRAppDelegate.m */; };
+		695A7F85107579FF00F30201 /* XMLTest.m in Sources */ = {isa = PBXBuildFile; fileRef = 695A7F84107579FF00F30201 /* XMLTest.m */; };
+		695AD4AD1080077C001B1514 /* getNextSongs3.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 695AD4AC1080077C001B1514 /* getNextSongs3.applescript */; };
+		6994AB4F107D4FE900CC6BCD /* addToiTunes.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */; };
+		6994AB60107D6AAD00CC6BCD /* getNextSongs.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AB5F107D6AAD00CC6BCD /* getNextSongs.applescript */; };
+		6994AB66107D6D3A00CC6BCD /* getCurrentTrack.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */; };
+		6994AC3F107DEAF500CC6BCD /* getNextSongs2.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AC3E107DEAF500CC6BCD /* getNextSongs2.applescript */; };
 		69E4ACC3106A0AEC0021BAEB /* MBTune.m in Sources */ = {isa = PBXBuildFile; fileRef = 69E4ACC2106A0AEC0021BAEB /* MBTune.m */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -26,6 +32,14 @@
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		695A7F7F107579D700F30201 /* XMLTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = XMLTest; sourceTree = BUILT_PRODUCTS_DIR; };
+		695A7F83107579FF00F30201 /* XMLTest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XMLTest.h; sourceTree = "<group>"; };
+		695A7F84107579FF00F30201 /* XMLTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = XMLTest.m; sourceTree = "<group>"; };
+		695AD4AC1080077C001B1514 /* getNextSongs3.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getNextSongs3.applescript; sourceTree = "<group>"; };
+		6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getCurrentTrack.applescript; sourceTree = "<group>"; };
+		6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = addToiTunes.applescript; sourceTree = "<group>"; };
+		6994AB5F107D6AAD00CC6BCD /* getNextSongs.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getNextSongs.applescript; sourceTree = "<group>"; };
+		6994AC3E107DEAF500CC6BCD /* getNextSongs2.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getNextSongs2.applescript; sourceTree = "<group>"; };
 		69E4ACC1106A0AEC0021BAEB /* MBTune.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBTune.h; sourceTree = "<group>"; };
 		69E4ACC2106A0AEC0021BAEB /* MBTune.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MBTune.m; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* MBR-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "MBR-Info.plist"; sourceTree = "<group>"; };
@@ -33,6 +47,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		695A7F7D107579D700F30201 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8D11072E0486CEB800E47090 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -77,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				8D1107320486CEB800E47090 /* MBR.app */,
+				695A7F7F107579D700F30201 /* XMLTest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -84,11 +106,14 @@
 		29B97314FDCFA39411CA2CEA /* Untitled */ = {
 			isa = PBXGroup;
 			children = (
+				6994AB34107D4AD200CC6BCD /* AppleScript */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
+				695A7F83107579FF00F30201 /* XMLTest.h */,
+				695A7F84107579FF00F30201 /* XMLTest.m */,
 			);
 			name = Untitled;
 			sourceTree = "<group>";
@@ -121,9 +146,37 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		6994AB34107D4AD200CC6BCD /* AppleScript */ = {
+			isa = PBXGroup;
+			children = (
+				6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */,
+				6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */,
+				6994AB5F107D6AAD00CC6BCD /* getNextSongs.applescript */,
+				6994AC3E107DEAF500CC6BCD /* getNextSongs2.applescript */,
+				695AD4AC1080077C001B1514 /* getNextSongs3.applescript */,
+			);
+			name = AppleScript;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		695A7F7E107579D700F30201 /* XMLTest */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 695A7F86107579FF00F30201 /* Build configuration list for PBXNativeTarget "XMLTest" */;
+			buildPhases = (
+				695A7F7C107579D700F30201 /* Sources */,
+				695A7F7D107579D700F30201 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = XMLTest;
+			productName = XMLTest;
+			productReference = 695A7F7F107579D700F30201 /* XMLTest */;
+			productType = "com.apple.product-type.tool";
+		};
 		8D1107260486CEB800E47090 /* MBR */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C01FCF4A08A954540054247B /* Build configuration list for PBXNativeTarget "MBR" */;
@@ -147,6 +200,9 @@
 /* Begin PBXProject section */
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				ORGANIZATIONNAME = None;
+			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "MBR" */;
 			compatibilityVersion = "Xcode 3.1";
 			hasScannedForEncodings = 1;
@@ -155,6 +211,7 @@
 			projectRoot = "";
 			targets = (
 				8D1107260486CEB800E47090 /* MBR */,
+				695A7F7E107579D700F30201 /* XMLTest */,
 			);
 		};
 /* End PBXProject section */
@@ -164,6 +221,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6994AC3F107DEAF500CC6BCD /* getNextSongs2.applescript in Resources */,
+				695AD4AD1080077C001B1514 /* getNextSongs3.applescript in Resources */,
+				6994AB4F107D4FE900CC6BCD /* addToiTunes.applescript in Resources */,
+				6994AB60107D6AAD00CC6BCD /* getNextSongs.applescript in Resources */,
+				6994AB66107D6D3A00CC6BCD /* getCurrentTrack.applescript in Resources */,
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
 			);
@@ -172,6 +234,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		695A7F7C107579D700F30201 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				695A7F85107579FF00F30201 /* XMLTest.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8D11072C0486CEB800E47090 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -204,6 +274,52 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		695A7F81107579D800F30201 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
+				INSTALL_PATH = /usr/local/bin;
+				OTHER_LDFLAGS = (
+					"-framework",
+					Foundation,
+					"-framework",
+					AppKit,
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = XMLTest;
+			};
+			name = Debug;
+		};
+		695A7F82107579D800F30201 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
+				INSTALL_PATH = /usr/local/bin;
+				OTHER_LDFLAGS = (
+					"-framework",
+					Foundation,
+					"-framework",
+					AppKit,
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = XMLTest;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -266,6 +382,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		695A7F86107579FF00F30201 /* Build configuration list for PBXNativeTarget "XMLTest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				695A7F81107579D800F30201 /* Debug */,
+				695A7F82107579D800F30201 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C01FCF4A08A954540054247B /* Build configuration list for PBXNativeTarget "MBR" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
