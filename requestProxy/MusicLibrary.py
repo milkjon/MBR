@@ -46,10 +46,10 @@ def	String2SafeAsciiWordList(theString):
 #enddef	String2SafeAsciiWordList()
 
 def FirstAlphanumericChar(theString):
-	#asciiStr = SafeAscii(theString).lower()
+	asciiStr = SafeAscii(theString).lower()
 	for c in theString:
-		if c.isalnum():
-			return c.lower()
+		if c in string.ascii_lowercase:
+			return c
 	return '0'
 
 class MusicLibrary:
@@ -200,7 +200,7 @@ class MusicLibrary:
 		#	returns:
 		#		boolean
 		
-		return self.songs.has_key(songID)
+		return songID in self.songs
 		
 	#enddef songExists()
 	
@@ -212,7 +212,7 @@ class MusicLibrary:
 		#		dict	if song exists, the song dictionary object
 		#		None	if the song does not exist
 		
-		if self.songs.has_key(songID):
+		if songID in self.songs:
 			return self.songs[songID]
 		else:
 			return None
