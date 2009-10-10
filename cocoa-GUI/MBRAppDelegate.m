@@ -30,6 +30,8 @@
 - (void) checkRequests
 {	
 	// Add new requests to the array.
+
+	if (! serverTask_) return;
 	
 	NSLog(@"check requests");
 	return;
@@ -43,6 +45,8 @@
 
 - (void) querySong
 {
+	if (! serverTask_) return;
+	
 	NSString *ident = [iTunes_ currentlyPlaying];
 	NSLog(@"Playing ID: %@", ident);
 	
