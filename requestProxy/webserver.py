@@ -1418,6 +1418,13 @@ def main():
 		server = HTTPServer(('', Config['Port']), MBRadio)
 		Debug.out('Starting MBRadio Webserver')
 		server.serve_forever()
+		
+		Requests[1] = {'songID': 'F36B634931C2E9A0', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
+										'requestedBy': 'Jon', 'dedication': 'Erich' }
+		
+		Requests[2] = {'songID': '57802A1965D11511', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
+										'requestedBy': 'erich', 'dedication': 'Jon' }
+		
 	
 	except (KeyboardInterrupt, SystemExit):
 		Debug.out('^C received, shutting down server')
