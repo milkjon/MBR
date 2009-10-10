@@ -43,7 +43,7 @@
 	
 }
 
-- (void) querySong
+- (void) reportCurrentSong
 {
 	if (! serverTask_) return;
 	
@@ -82,8 +82,6 @@
 	
 	[iTunes_ addID: trackID toPlaylist: playlist];
 }
-
-
 
 - (IBAction) getNextSongs: (id) sender
 {
@@ -163,7 +161,7 @@
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(getRequests) userInfo: nil repeats: YES];
-		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
+		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];
 	}
