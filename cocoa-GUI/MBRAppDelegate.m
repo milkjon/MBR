@@ -14,12 +14,7 @@
 
 @implementation MBRAppDelegate
 
-- (NSString*) _runAppleScript: (NSString *) source
 {
-	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
-	NSDictionary *err=nil;
-	NSString *result = [[script executeAndReturnError: &err] stringValue];
-	if (err) return [NSString stringWithFormat: @"ERROR, %@", err];
 	return result;
 }
 
@@ -91,13 +86,6 @@
 	NSString *playlist = @"radio";
 	NSString *trackID = [track trackID];
 	
-	NSString *source = [NSString stringWithFormat: addToiTunesTemplate_, trackID, playlist]; 
-	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
-	NSDictionary *error = nil;
-	[script executeAndReturnError: &error];
-	
-	if (error)
-		NSLog(@"%@", error);	
 }
 
 - (void) checkRequests
@@ -128,8 +116,6 @@
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
-	NSString *upcoming = [self _runAppleScript: nextTracksTemplate_];
-	NSArray *songList = [upcoming componentsSeparatedByString: @"\r"];	
 	NSMutableString *queryString = [NSMutableString string];
 	
 	for (int i = 0;   i < [songList count] && i < 5; i++) {
@@ -149,12 +135,6 @@
 		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(checkRequests) userInfo: nil repeats: YES];
 		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(querySong) userInfo: nil repeats: YES];
 		
-		addToiTunesTemplate_ = [[NSString alloc] initWithContentsOfFile: 
-			[[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
-		getTrackTemplate_ = [[NSString alloc] initWithContentsOfFile: 
-			[[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
-		nextTracksTemplate_ = [[NSString alloc] initWithContentsOfFile:
-			[[NSBundle mainBundle] pathForResource:@"getNextSongs3" ofType:@"applescript"]];
 	}
 	return self;
 }
@@ -166,8 +146,6 @@
 	[requestCheckTimer_ release];
 	[songQueryTimer_ invalidate];
 	[songQueryTimer_ release];
-	[addToiTunesTemplate_ release];
-	[getTrackTemplate_ release];
 	[super dealloc];
 }
 
