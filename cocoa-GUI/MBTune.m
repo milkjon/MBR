@@ -177,6 +177,11 @@
 				else if ([s isEqualToString: @"genre"])
 					[self setGenre: [info stringValue]];
 				else if ([s isEqualToString: @"duration"]) {
+					int duration = [[info stringValue] intValue];
+					int seconds = duration / 1000;
+					int minutes = seconds / 60;
+					seconds -= minutes*60;
+					[self setDuration: [NSString stringWithFormat: @"%d:%d", minutes, seconds]];
 				}
 			}
 		}
