@@ -145,39 +145,44 @@
 - (id) initWithXML: (NSXMLElement *)element
 {
 	self = [self init];
-	NSArray *details = [element children];
-	NSEnumerator *detailEnumerator = [details objectEnumerator];
+	
+	if (!self) return nil;
+	
 	NSXMLElement *detail;
-	while (detail = [detailEnumerator nextObject]) {
-		NSString* name = [detail name];
+	NSArray *details = [element children];
+	NSEnumerator *detailEnum = [details objectEnumerator];
+	while (detail = [detailEnum nextObject]) {
+		NSString *tag = [detail name];
+		NSString *content = [detail stringValue];
 		
-		if ([name isEqualToString: @"time"]) {
-			NSDate *time = [NSDate dateWithTimeIntervalSince1970: [[detail stringValue] doubleValue]];
+		if ([tag isEqualToString: @"time"]) {
+			NSDate *time = [NSDate dateWithTimeIntervalSince1970: [content doubleValue]];
 			[self setRequestTime: time];
 		}
-		else if ([name isEqualToString: @"requestedby"])
-			[self setRequester: [detail stringValue]];
-		else if ([name isEqualToString: @"dedication"])
-			[self setDedication: [detail stringValue]];
-		else if ([name isEqualToString: @"song"]) {				
+		else if ([tag isEqualToString: @"requestedby"])
+			[self setRequester: content];
+		else if ([tag isEqualToString: @"dedication"])
+			[self setDedication: content];
+		else if ([tag isEqualToString: @"song"]) {				
 			[self setTrackID: [[detail attributeForName:@"id"] stringValue]];
 			
-			NSArray *songInfo = [detail children];
-			NSEnumerator *songInfoEnumerator = [songInfo objectEnumerator];
 			NSXMLElement *info;
-			while (info = [songInfoEnumerator nextObject]) {
+			NSArray *songInfo = [detail children];
+			NSEnumerator *songInfoEnum = [songInfo objectEnumerator];
+			while (info = [songInfoEnum nextObject]) {
 				NSString *s = [info name];
+				NSString *property = [info stringValue];
 				
 				if ([s isEqualToString: @"artist"])
-					[self setArtist: [info stringValue]];
+					[self setArtist: property];
 				else if ([s isEqualToString: @"title"])
-					[self setTitle: [info stringValue]];
+					[self setTitle: property];
 				else if ([s isEqualToString: @"album"])
-					[self setAlbum: [info stringValue]];
+					[self setAlbum: property];
 				else if ([s isEqualToString: @"genre"])
-					[self setGenre: [info stringValue]];
+					[self setGenre: property];
 				else if ([s isEqualToString: @"duration"]) {
-					int duration = [[info stringValue] intValue];
+					int duration = [property intValue];
 					int seconds = duration / 1000;
 					int minutes = seconds / 60;
 					seconds -= minutes*60;
