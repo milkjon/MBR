@@ -60,9 +60,8 @@
 	NSLog(@"Playing ID: %@", ident);
 	
 	// Make the http request
-	NSString *str = [NSString stringWithFormat: @"now-playing?songid=%@", ident];
-	//NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: str]];
-	//NSLog(result);
+	NSString *request = [NSString stringWithFormat: @"now-playing?songid=%@", ident];
+	[self _makeWebRequest: request];
 }
 
 #pragma mark IBActions
@@ -175,6 +174,5 @@
 	[iTunes_ release];
 	[super dealloc];
 }
-
 
 @end
