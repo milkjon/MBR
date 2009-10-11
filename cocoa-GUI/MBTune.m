@@ -142,4 +142,19 @@
 			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
 }
 
+- (id) init
+{
+	self = [super init];
+	if (self != nil) {
+		//
+	}
+	return self;
+}
+
+- (void) dealloc
+{
+	//
+	[super dealloc];
+}
+
 @end
