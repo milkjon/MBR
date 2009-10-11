@@ -37,7 +37,19 @@
 	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
 	
 	// parse the result and update the array
+	NSXMLDocument *d = [[NSXMLDocument alloc] initWithXMLString:result options:0 error:nil];
+	NSArray *array = [d nodesForXPath:@"requestlist/request" error:nil];
 	
+	if ([array count] == 0) return;
+	
+	NSEnumerator *itemEnumerator = [array objectEnumerator];
+	NSXMLElement *item;
+	while (item = [itemEnumerator nextObject]) {
+		MBTune *tune = [[MBTune alloc] initWithXML: item];
+		 [self willChangeValueForKey: kRequests];
+		 [requests addObject: tune];
+		 [self didChangeValueForKey: kRequests];
+	}
 }
 
 - (void) reportCurrentSong
