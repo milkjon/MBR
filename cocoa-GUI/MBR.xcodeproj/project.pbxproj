@@ -47,6 +47,7 @@
 		695AD5D910812A3F001B1514 /* MusicLibrary.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = MusicLibrary.py; path = ../requestProxy/MusicLibrary.py; sourceTree = SOURCE_ROOT; };
 		695AD5DA10812A3F001B1514 /* iTunesLibrary.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = iTunesLibrary.py; path = ../requestProxy/iTunesLibrary.py; sourceTree = SOURCE_ROOT; };
 		695AD5F010812B85001B1514 /* Debug.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = Debug.py; path = ../requestProxy/Debug.py; sourceTree = SOURCE_ROOT; };
+		695AD70010814DFE001B1514 /* TODO.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = TODO.txt; path = ../TODO.txt; sourceTree = SOURCE_ROOT; };
 		6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getCurrentTrack.applescript; sourceTree = "<group>"; };
 		6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = addToiTunes.applescript; sourceTree = "<group>"; };
 		69E4ACC1106A0AEC0021BAEB /* MBTune.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBTune.h; sourceTree = "<group>"; };
@@ -117,6 +118,7 @@
 		29B97314FDCFA39411CA2CEA /* Untitled */ = {
 			isa = PBXGroup;
 			children = (
+				695AD70010814DFE001B1514 /* TODO.txt */,
 				695AD5D110812A16001B1514 /* Python */,
 				6994AB34107D4AD200CC6BCD /* AppleScript */,
 				080E96DDFE201D6D7F000001 /* Classes */,
