@@ -30,15 +30,11 @@
 - (void) fetchRequests
 {	
 	// Add new requests to the array.
-
 	NSLog(@"get requests");
 	
 	//	if (! serverTask_) return;
-	
-	NSLog(@"check requests");
 	NSString *s = @"http://localhost:15800/new-requests/";
 	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
-	NSLog(result);
 	
 	// parse the result and update the array
 	
@@ -134,12 +130,7 @@
 	NSLog(@"didFinishLaunching");
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
-/*		
-	[self willChangeValueForKey: kRequests];
-	[requests addObject: tune1];
-	[requests addObject: tune2];
-	[self didChangeValueForKey: kRequests];
-*/
+
 	// Get playlists from iTunes
 	// Update Popup - button
 	// Select playlist that is saved to prefs.
