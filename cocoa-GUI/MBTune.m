@@ -142,6 +142,48 @@
 			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
 }
 
+- (id) initWithXML: (NSXMLElement *)element
+{
+	self = [self init];
+	NSArray *details = [element children];
+	NSEnumerator *detailEnumerator = [details objectEnumerator];
+	NSXMLElement *detail;
+	while (detail = [detailEnumerator nextObject]) {
+		NSString* name = [detail name];
+		
+		if ([name isEqualToString: @"time"]) {
+			NSDate *time = [NSDate dateWithTimeIntervalSince1970: [[detail stringValue] doubleValue]];
+			[self setRequestTime: time];
+		}
+		else if ([name isEqualToString: @"requestedby"])
+			[self setRequester: [detail stringValue]];
+		else if ([name isEqualToString: @"dedication"])
+			[self setDedication: [detail stringValue]];
+		else if ([name isEqualToString: @"song"]) {				
+			[self setTrackID: [[detail attributeForName:@"id"] stringValue]];
+			
+			NSArray *songInfo = [detail children];
+			NSEnumerator *songInfoEnumerator = [songInfo objectEnumerator];
+			NSXMLElement *info;
+			while (info = [songInfoEnumerator nextObject]) {
+				NSString *s = [info name];
+				
+				if ([s isEqualToString: @"artist"])
+					[self setArtist: [info stringValue]];
+				else if ([s isEqualToString: @"title"])
+					[self setTitle: [info stringValue]];
+				else if ([s isEqualToString: @"album"])
+					[self setAlbum: [info stringValue]];
+				else if ([s isEqualToString: @"genre"])
+					[self setGenre: [info stringValue]];
+				else if ([s isEqualToString: @"duration"]) {
+				}
+			}
+		}
+	}
+	return self;
+}
+
 - (id) init
 {
 	self = [super init];
@@ -156,5 +198,6 @@
 	//
 	[super dealloc];
 }
+
 
 @end

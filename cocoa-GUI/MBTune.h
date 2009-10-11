@@ -39,4 +39,7 @@
 -(void) setTrackID: (NSString *) trackID;
 -(void) setDuration: (NSString *) length;
 -(void) setRequestTime: (NSDate *) requestTime;
+
+-(id) initWithXML: (NSXMLElement *) element;
+
 @end
