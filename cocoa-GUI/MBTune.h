@@ -27,6 +27,7 @@
 -(NSString *) genre;
 -(NSString *) requester;
 -(NSString *) dedication;
+-(NSString *) duration;
 -(NSString *) trackID;
 -(NSDate *) requestTime;
 

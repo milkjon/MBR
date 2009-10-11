@@ -45,7 +45,7 @@
 	return trackID_;
 }
 
--(NSString*) length
+-(NSString*) duration
 {
 	return duration_;
 }
