@@ -127,7 +127,6 @@
 	duration_ = [length retain];
 }
 
-
 -(void) setRequestTime: (NSDate*) requestTime
 {
 	if (requestTime == requestTime_)
@@ -140,7 +139,7 @@
 -(NSString*) description
 {
 	return [NSString stringWithFormat:
-			@"[%@] %@ - %@", trackID_, artist_, title_];
+			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
 }
 
 @end
