@@ -103,7 +103,7 @@
 		[queryString appendString: item];
 	}
 	
-	[self _makeWebRequest: queryString];
+	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
 
 - (IBAction) updateRequests: (id) sender
