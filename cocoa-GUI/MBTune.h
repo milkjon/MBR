@@ -14,6 +14,7 @@
 	NSString *album_;
 	NSString *trackID_;
 	NSString *duration_;
+	NSString *genre_;
 	
 	NSDate* requestTime_;
 	NSString* requester_;
@@ -23,6 +24,7 @@
 -(NSString *) artist;
 -(NSString *) title;
 -(NSString *) album;
+-(NSString *) genre;
 -(NSString *) requester;
 -(NSString *) dedication;
 -(NSString *) trackID;
@@ -31,6 +33,7 @@
 -(void) setArtist: (NSString *) artist;
 -(void) setTitle: (NSString *) title;
 -(void) setAlbum: (NSString *) album;
+-(void) setGenre: (NSString *) genre;
 -(void) setRequester: (NSString *) requester;
 -(void) setDedication: (NSString *) dedication;
 -(void) setTrackID: (NSString *) trackID;

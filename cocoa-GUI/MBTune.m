@@ -25,6 +25,11 @@
 	return album_;
 }
 
+-(NSString*) genre
+{
+	return genre_;
+}
+
 -(NSString*) requester
 {
 	return requester_;
@@ -75,6 +80,15 @@
 	
 	[album_ release];
 	album_ = [album retain];
+}
+
+-(void) setGenre: (NSString*) genre
+{
+	if (genre == genre_)
+		return;
+	
+	[genre_ release];
+	genre_ = [genre retain];
 }
 
 -(void) setRequester: (NSString*) requester
