@@ -7,17 +7,15 @@
 
 #	TASK/STATUS		COMMENTS
 ------------------------------------------------------------------------------------------------------------------------
-1.	TO DO			Objc app needs to query the python proxy to get the list of new requests.
-	(Jonathan)		This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
-	
-	STATUS			Mostly done.
 
 2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
 	(Jonathan)
+	PRIORITY		Low
 	STATUS			Incomplete
 	
 3.	TO DO			HTTP requests should be done on background thread.
 	(Jonathan)
+	PRIORITY		Medium
 	STATUS			Incomplete
 	
 4.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
@@ -56,8 +54,21 @@
 					Will this work as you want?
 	
 	RESULT			?
-		
-		
+
+
+7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
+	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
+					be included in this project.
+	
+	STATUS			None
+
+=== Done
+
+1.	TO DO			Objc app needs to query the python proxy to get the list of new requests.
+	(Jonathan)		This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
+	
+	STATUS			DONE
+
 5.	INVESTIGATE		Can iTunes be queried with Applescript to find out what the next X items in the playlist are?
 			
 					One function of the website is to return a list of "coming up next" songs. It shows the next 3 or 4
@@ -69,26 +80,11 @@
 	FOLLOWUP		Yes. It just needs to be implemented. :) 
 	(Jon)
 	
-	TODO			Implement it :P  Whenever the "find the currently playing song" timer results with a new songID
-	(Jon)			being played, then send the "coming up" information through the http-interface.
+	TODO			Implement it :P 
 	
-					Assume that the http interface specified above works:  i.e.,
-						http://localhost:15800/coming-up?song1=ID&song2=ID&song3=ID ...
-	
-					We can set a hard-coded limit of 5 songs for the coming-up list.
-					
-	FOLLOWUP		I implemented the  http://localhost:15800/coming-up  interface as specified.
-	(Erich)			You can check the contents of the queue by requesting http://localhost:15800/queue
-					
+	RESULT		DONE
 
-7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
-	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
-					be included in this project.
-	
-	STATUS			None
-
-=== Done
-
+	 
 6.	TODO			Implement the statistics interface on the python app. The website requests information from the
 	(Erich)			python server such as "Top 10 Artists Played in the Last 5 Days"  or  "Top 10 Requested Artists"
 					and so on. Not strictly necessary, but if I want to fully emulate the existing windows application,
