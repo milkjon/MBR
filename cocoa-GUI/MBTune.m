@@ -135,11 +135,6 @@
 	requestTime_ = [requestTime retain];
 }
 
--(NSString*) description
-{
-	return [NSString stringWithFormat:
-			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
-}
 
 - (id) initWithXML: (NSXMLElement *) element
 {
@@ -208,5 +203,10 @@
 	[super dealloc];
 }
 
+- (NSString*) description
+{
+	return [NSString stringWithFormat:
+			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
+}
 
 @end
