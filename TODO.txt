@@ -8,15 +8,6 @@
 #	TASK/STATUS		COMMENTS
 ------------------------------------------------------------------------------------------------------------------------
 
-2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
-	(Jonathan)
-	PRIORITY		Low
-	STATUS			Incomplete
-	
-3.	TO DO			HTTP requests should be done on background thread.
-	(Jonathan)
-	PRIORITY		Medium
-	STATUS			Incomplete
 	
 4.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
 	(Jonathan)		and python.
@@ -55,6 +46,15 @@
 	
 	RESULT			?
 
+2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
+	(Jonathan)
+	PRIORITY		Low
+	STATUS			Incomplete
+	
+3.	TO DO			HTTP requests should be done on background thread.
+	(Jonathan)
+	PRIORITY		Medium
+	STATUS			Incomplete
 
 7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
 	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
