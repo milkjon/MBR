@@ -17,8 +17,6 @@
 
 @implementation MBRAppDelegate
 
-#pragma mark talking to webserver
-
 - (NSString *) _makeWebRequest: (NSString *) request
 {
 	NSLog(@"%@", request);
@@ -26,6 +24,8 @@
 	NSString *result = [NSString stringWithContentsOfURL: url];
 	return result;
 }
+
+#pragma mark -
 
 - (void) fetchRequests
 {	
@@ -146,6 +146,8 @@
 	// Update Popup - button
 	// Select playlist that is saved to prefs.
 }
+
+#pragma mark -
 
 - (id) init
 {
