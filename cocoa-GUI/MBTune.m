@@ -54,7 +54,9 @@
 	return requestTime_;
 }
 
--(void) setArtist: (NSString*) artist
+#pragma mark -
+
+- (void) setArtist: (NSString*) artist
 {
 	if (artist == artist_)
 		return;
@@ -135,6 +137,7 @@
 	requestTime_ = [requestTime retain];
 }
 
+#pragma mark -
 
 - (id) initWithXML: (NSXMLElement *) element
 {
