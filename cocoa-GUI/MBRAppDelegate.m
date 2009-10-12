@@ -29,7 +29,6 @@
 
 - (void) fetchRequests
 {	
-	// Add new requests to the array.
 	NSLog(@"get requests");
 	
 	//	if (! serverTask_) return;
@@ -75,21 +74,18 @@
 	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
 
+#pragma mark -
+
 #pragma mark IBActions
 
 - (IBAction) addToiTunesPlaylist: (id) sender
 {
 	NSLog(@"addToiTunes");
-	NSLog(@"%@", [arrayController selectedObjects]);
 	
 	MBTune* track = nil;
-	
 	if ([sender isKindOfClass: [NSTableView class]]) {
-		int row = [tableView clickedRow];
-		if (row == -1) 
-			return;
-		
-		track = [[arrayController arrangedObjects] objectAtIndex: row];
+		if ([tableView clickedRow] == -1) return;
+		track = [[arrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
 	} else {
 		track = [[arrayController selectedObjects] objectAtIndex: 0];	
 	}
@@ -97,9 +93,7 @@
 	if (! track) return;
 	
 	NSString *playlist = @"radio";
-	NSString *trackID = [track trackID];
-	
-	[iTunes_ addID: trackID toPlaylist: playlist];
+	[iTunes_ addID: [track trackID] toPlaylist: playlist];
 }
 
 - (IBAction) getNextSongs: (id) sender
