@@ -10,8 +10,8 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import os.path, string, unicodedata, time, os, sys, urlparse, cgi, zlib, gc
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import os.path, string, unicodedata, time, os, sys, cgi, gc
+import BaseHTTPServer
 
 # local imports
 import iTunesLibrary, Statistics, Debug
@@ -19,15 +19,19 @@ import iTunesLibrary, Statistics, Debug
 #----------------------------------------------------------------------------------------------------------------------#
 #  Globals
 #----------------------------------------------------------------------------------------------------------------------#
-global Library, Config, PlayStats, RequestStats
 
+# Music library (instance of MusicLibrary class)
 Library = None
+
+# Config dictionary
 Config = {}
 
+# Song-play history stats
 PlayStats = Statistics.PlayedStatistics()
+
+# Request history stats
 RequestStats = Statistics.RequestStatistics()
 
-global Hosts, Requests, NewRequests, History, SongQueue
 # Hosts dictionary - all remote hosts (users) that have made requests
 #	Contents:
 #		keys:		IP-address of host
@@ -38,9 +42,12 @@ Hosts = {}
 # Requests dictionary - all requests received by server
 #	Contents:
 #		keys:		requestID
-#		values:		dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP), 'status': (waiting|played), 
+#		values:		dict{ 'songID': (songID), 'time': (timestamp), 'host': (host IP), 'status': (waiting|played|queued), 
 #					      'requestedBy': (requestor), 'dedication': (dedication info) }
 Requests = {}
+
+# RequestCount is used to generate the request ID. Incremented with each new request.
+RequestCount = 0
 
 # NewRequests list - requests waiting to be collected by the display program.
 #	Contents:
@@ -56,64 +63,6 @@ History = []
 #	Contents:
 #		list[ (songID1, requestID1), (songID2, requestID2), ... ]
 SongQueue = []
-
-#----------------------------------------------------------------------------------------------------------------------#
-#  Load configuration
-#----------------------------------------------------------------------------------------------------------------------#
-def LoadConfig():
-	global Library, Config
-	import platform
-	
-	Debug.out("Loading Config...")
-	
-	# which Library DB to use?  Currently the only acceptable option is "iTunes"
-	Config['Library'] = "iTunes"
-
-	# port to which the HTTP request server binds
-	Config['Port'] = 15800
-
-	# directory for saving prefs and logs
-
-	isMac = 'Darwin' == platform.system() 
-	if isMac:
-		Config['AppDir'] = os.path.join(os.path.expanduser('~'), "Library/Application Support/MBRadio")
-		Config['LogDir'] = os.path.join(Config['AppDir'], "Logs")
-
-		# FIXME
-		#Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
-		Config['iTunesDB'] = '/Users/Shared/iTunes/iTunes Music Library.xml'
-	else:
-		# Windows I guess
-		Config['AppDir'] = os.path.abspath(os.curdir)
-		Config['LogDir'] = os.path.join(Config['AppDir'], "logs")
-		Config['iTunesDB'] = os.path.join(os.path.expanduser('~'), 'Music\iTunes\iTunes Music Library.xml')
-	
-	try:
-		if not os.path.exists(Config['AppDir']):
-			os.makedirs(Config['AppDir'])
-	except:
-		Debug.out("Could not make the application directory path")
-	
-	try:
-		if not os.path.exists(Config['LogDir']):
-			os.makedirs(Config['LogDir'])
-	except:
-		Debug.out("Could not make the log directory path")
-
-	# Max requests are enforced on sliding hour-long timeframe
-	Config['maxRequests_User'] = 10
-	Config['maxRequests_Artist'] = 5
-	Config['maxRequests_Album'] = 5
-	Config['maxRequests_Song'] = 2
-	
-	# Only handle HTTP requests from the following IPs and/or hostnames
-	# *Jonathan* I'm not sure how the localhost shows up on MacOS.
-	# On windows, BaseHTTPRequestHandler.client_address[0] returns "127.0.0.1". May need to look into that.
-	Config['AllowedClients'] =	[ '127.0.0.1', 'localhost', \
-								  '67.205.28.237', 'bugsy.dreamhost.com' ]
-	Config['LocalHost'] = '127.0.0.1'
-	
-#enddef LoadConfig
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Load music library
@@ -136,12 +85,11 @@ def LoadLibrary():
 #  BaseHTTPServer implementation
 #----------------------------------------------------------------------------------------------------------------------#
 
-global RequestCount
-RequestCount = 0
-
 newlinestripper = string.maketrans('\n\r\f','   ')
 
-class MBRadio(BaseHTTPRequestHandler):
+class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
+	
+	import urlparse, zlib
 	
 	def sendError(self, text = 'Server error', num = 500):
 		self.send_response(num)
@@ -171,7 +119,6 @@ class MBRadio(BaseHTTPRequestHandler):
 		#	/now-playing			Locally				Set
 		#	/coming-up				Locally				Set
 		#	/reload-library			Locally				Action
-		#	/reload-config			Locally				Action
 		#	/set-config				Locally				Set
 		#	/terminate				Locally				Action
 		#	/search					Remote webserver	Query
@@ -417,30 +364,6 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 			try:
 				LoadLibrary()
-				self.sendData('OK')
-			except:
-				self.sendData('FAIL')
-
-		#-----------------------------------------------------------------------------------------------------------
-		#  command == '/reload-config'      - LOCALHOST ONLY -
-		#
-		#	Instructs this program to reload the config file. This is necessary if the user changes config
-		#	options like "max requests per user per hour", etc.
-		#
-		#	Query string parameters: (none)
-		#
-		#	Returns plain text:
-		#		'OK'	reload succeeded
-		#		'FAIL'	unknown error occured
-		#-----------------------------------------------------------------------------------------------------------
-		elif command == '/reload-config':
-			# only answer requests from the localhost
-			if self.client_address[0] != Config['LocalHost']:
-				self.sendError('Unauthorized', 401)
-				return
-				
-			try:
-				LoadConfig()
 				self.sendData('OK')
 			except:
 				self.sendData('FAIL')
@@ -1180,13 +1103,13 @@ class MBRadio(BaseHTTPRequestHandler):
 			
 	#enddef do_POST
 
-#endclass MBRadio(BaseHTTPRequestHandler)
+#endclass MBRadio(BaseHTTPServer.BaseHTTPRequestHandler)
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Utility functions
 #----------------------------------------------------------------------------------------------------------------------#
 def PackageSong(songID):
-	# packages the song info as an XML string
+	"""Packages the song info as an XML string"""
 	
 	song = Library.getSong(songID)
 	if song is None:
@@ -1204,7 +1127,7 @@ def PackageSong(songID):
 #enddef PackageSong
 
 def PackageRequest(requestID):
-	# packages the request info as an XML string
+	"""Packages the request info as an XML string"""
 	
 	if requestID is None or not requestID in Requests:
 		return ""
@@ -1224,7 +1147,7 @@ def PackageRequest(requestID):
 #enddef PackageRequest
 
 def PackageHistoryItem(timePlayed, songID, requestID):
-	# packages a history item as an XML string
+	"""Packages a history item as an XML string"""
 	
 	if not Library.songExists(songID):
 		return ''
@@ -1247,7 +1170,7 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 #enddef PackageHistoryItem
 
 def PackageQueueItem(songID, requestID):
-	# packages a queue item as an XML string
+	"""Packages a queue item as an XML string"""
 	
 	if not Library.songExists(songID):
 		return ''
@@ -1270,14 +1193,22 @@ def PackageQueueItem(songID, requestID):
 #enddef PackageQueueItem
 
 def SafeXML(theString):
+	"""Escape a string for safe XML transmission as UTF-8"""
+	
 	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
 #enddef SafeXML
 
 def SafeAscii(theString):
+	"""Return a string that only contains ASCII characters"""
+	
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
 #enddef SafeAscii
 
 def MakeSortingTuple(songID, sortBy):
+	"""	Create an n-tuple used to sort a song list, based on the sorting rules given by the sortBy argument.
+		This takes advantage of the default lexicographic sorting behavior of sort() on lists of tuples
+	"""
+	
 	song = Library.getSong(songID)
 	if song is None:
 		return tuple([None for i in range(len(sortBy)+1)])
@@ -1307,6 +1238,7 @@ def MakeSortingTuple(songID, sortBy):
 #  Logging Functions
 #----------------------------------------------------------------------------------------------------------------------#
 def LogRequest(requestID):
+	"""Writes a request to the log file"""
 	
 	if not requestID in Requests:
 		return
@@ -1340,7 +1272,8 @@ def LogRequest(requestID):
 
 
 def LogSong(timePlayed, songID, requestID):
-
+	"""Writes a song-play event to the log file"""
+	
 	if not Library.songExists(songID):
 		return
 	
@@ -1364,14 +1297,18 @@ def LogSong(timePlayed, songID, requestID):
 
 #enddef LogSong
 
-def File_InsertAtLine(fileName, newLine, atLineNumber):
+def File_InsertAtLine(fileName, insertThis, atLineNumber):
+	"""	Inserts the string (insertThis) at line number (atLineNumber) in the file specified by (fileName)
+		Note: (insertThis) must have a trailing '\n' to insert a new line!
+	"""
+	
 	import fileinput
 
 	lines = []
 	f = fileinput.FileInput(fileName, inplace=1)
 	for i in range(1, atLineNumber):
 		lines.append(f.readline())
-	lines.append(newLine)
+	lines.append(insertThis)
 	sys.stdout.write(string.join(lines, ''))
 	
 	for line in f:
@@ -1381,6 +1318,7 @@ def File_InsertAtLine(fileName, newLine, atLineNumber):
 #enddef File_InsertAtLine
 
 def File_CheckOrMakeDefault(fileName, defaultContent):
+	"""Checks if the file path (fileName) exists; otherwise, it creates the file and writes (defaultContent) into it"""
 	
 	createDefault = False
 	if os.path.isfile(fileName):
@@ -1398,46 +1336,213 @@ def File_CheckOrMakeDefault(fileName, defaultContent):
 #enddef File_CheckOrMakeDefault
 
 #----------------------------------------------------------------------------------------------------------------------#
-#  Statistics Support Functions
+#  Load configuration
+#----------------------------------------------------------------------------------------------------------------------#
+class ConfigError(Exception):
+    pass
+
+def LoadConfig():
+	global Library, Config
+	import platform
+	
+	Debug.out("Loading Config...")
+	
+	# port (if not already specified from command line)
+	if not Config.has_key('Port'):
+		Config['Port'] = 15800
+	
+	# which Library DB to use?  Currently the only acceptable option is "iTunes"
+	Config['Library'] = "iTunes"
+
+	# directory for saving prefs and logs
+	isMac = 'Darwin' == platform.system() 
+	
+	# App settings directory
+	if Config.has_key('AppDir'):
+		if not os.path.exists(Config['AppDir']):
+			sys.stderr.write("Could not find application settings directory: " + Config['AppDir'] + '\n')
+			raise ConfigError
+	else:
+		if isMac:
+			Config['AppDir'] = os.path.expanduser('~/Library/Application Support/MBRadio')
+		else:
+			Config['AppDir'] = os.path.abspath(os.curdir)
+			
+		try:
+			if not os.path.exists(Config['AppDir']):
+				os.makedirs(Config['AppDir'])
+		except:
+			sys.stderr.write("Could not find (or make) application settings directory: " + Config['AppDir'] + '\n')
+			raise ConfigError
+			
+	# Logs directory
+	if not Config.has_key('LogDir'):
+		Config['LogDir'] = os.path.join(Config['AppDir'], "Logs")
+		
+	try:
+		if not os.path.exists(Config['LogDir']):
+			os.makedirs(Config['LogDir'])
+	except:
+		sys.stderr.write("Could not find (or make) application logs directory: " + Config['LogDir'] + '\n')
+		raise ConfigError
+		
+	# iTunesDB
+	if not Config.has_key('iTubesDB'):
+		if isMac:
+			# FIXME
+			Config['iTunesDB'] = '/Users/Shared/iTunes/iTunes Music Library.xml'
+		else:
+			Config['iTunesDB'] = os.path.expanduser('~\Music\iTunes\iTunes Music Library.xml')
+	
+	if not os.path.exists(Config['iTunesDB']):
+		sys.stderr.write("Could not find iTunes XML DB at: " + Config['iTunesDB'] + '\n')
+		raise ConfigError
+		
+
+	# Max requests are enforced on sliding hour-long timeframe
+	Config['maxRequests_User'] = 10
+	Config['maxRequests_Artist'] = 5
+	Config['maxRequests_Album'] = 5
+	Config['maxRequests_Song'] = 2
+	
+	# Only handle HTTP requests from the following IPs and/or hostnames
+	# *Jonathan* I'm not sure how the localhost shows up on MacOS.
+	# On windows, BaseHTTPRequestHandler.client_address[0] returns "127.0.0.1". May need to look into that.
+	Config['AllowedClients'] =	[ '127.0.0.1', 'localhost', \
+								  '67.205.28.237', 'bugsy.dreamhost.com' ]
+	Config['LocalHost'] = '127.0.0.1'
+	
+#enddef LoadConfig
+
+#----------------------------------------------------------------------------------------------------------------------#
+#  Command line handler
 #----------------------------------------------------------------------------------------------------------------------#
 
+def HandleCommandline(argv):
+	import optparse
+	
+	if argv is None:
+		argv = sys.argv[1:]
+
+	# initialize the parser object:
+	usage = "usage: %prog [options]"
+	parser = optparse.OptionParser(formatter=optparse.IndentedHelpFormatter(width=78, max_help_position=6))
+
+	# define options here:
+	parser.add_option("-p", "--port", dest="port", 
+						action="store", type="long", 
+						help="Specifies port the HTTP server binds to")
+	parser.add_option("-L", "--library", dest="xmldb",metavar="FILE",
+						action="store", type="string", 
+						help="Path to the iTunes DB XML file.")
+	parser.add_option("--app-dir", dest="appdir",metavar="PATH",
+						action="store", type="string", 
+						help="Path to the application's settings directory.")
+	parser.add_option("--log-dir", dest="logdir",metavar="PATH",
+						action="store", type="string", 
+						help="Path to the application's logs directory. Defaults to '$AppDir/logs'")
+	parser.add_option("-v", "--verbose", dest="verbose", 
+						action="store_true",default=True,  # FIXME
+						help="Prints debugging output to stderr")
+						
+	settings, args = parser.parse_args(argv)
+
+	return settings, args
+	
+#enddef HandleCommandline()
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  main()
 #----------------------------------------------------------------------------------------------------------------------#
-def main():
+def main(argv=None):
 
 	#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_OBJECTS | gc.DEBUG_COLLECTABLE )
 	
+	# handle commandline
+	try:
+		settings, args = HandleCommandline(argv)
+		if settings.verbose:
+			Debug.DEBUG = 1
+		else:
+			Debug.DEBUG = 0
+			
+		if settings.port:
+			Config['Port'] = settings.port
+			
+		if settings.xmldb:
+			Config['iTunesDB'] = settings.xmldb
+			
+		if settings.appdir:
+			Config['AppDir'] = settings.appdir
+		
+		if settings.logdir:
+			Config['LogDir'] = settings.logdir
+			
+	except:
+		sys.stderr.write('Failed to parse commandline')
+		sys.exit(2)
+
+	# load configuation:
 	try:
 		LoadConfig()
-		LoadLibrary()
-		
-		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
-		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
-
-		Requests[1] = {'songID': 'F36B634931C2E9A0', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
-										'requestedBy': 'Jon', 'dedication': 'Erich' }
-		
-		Requests[2] = {'songID': '57802A1965D11511', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
-										'requestedBy': 'erich', 'dedication': 'Jon' }
-		
-		NewRequests.append(1)
-		NewRequests.append(2)
-		
-		RequestCount = 2
-
-		server = HTTPServer(('', Config['Port']), MBRadio)
-		Debug.out('Starting MBRadio Webserver')
-		server.serve_forever()
-		
-
+	except ConfigError:
+		sys.stderr.write('Failed to load configuration')
+		sys.exit(1)
 	
+	# load music library
+	try:
+		LoadLibrary()
+	except:
+		sys.stderr.write('Failed to load music library')
+		sys.exit(1)
+	
+	# load history from the logs
+	try:
+		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
+	except:
+		pass
+	try:
+		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
+	except:
+		pass
+	
+	
+	# FIXME
+	# create some dummy data for debugging
+	Requests[1] = {'songID': 'F36B634931C2E9A0', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
+									'requestedBy': 'Jon', 'dedication': 'Erich' }
+	
+	Requests[2] = {'songID': '57802A1965D11511', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
+									'requestedBy': 'erich', 'dedication': 'Jon' }
+	
+	NewRequests.append(1)
+	NewRequests.append(2)
+	
+	RequestCount = 2
+		
+	# start the HTTP server
+	import socket
+	try:
+		server = BaseHTTPServer.HTTPServer(('', Config['Port']), MBRadio)
+	except socket.error as (errno, strerror):
+		sys.stderr.write('Failed to create HTTP Server: ' + strerror)
+		sys.exit(1)
+	except:
+		sys.stderr.write('Failed to create HTTP Server (unknown error)')
+		sys.exit(1)
+	
+	try:
+		sys.stderr.write('Starting MBRadio Webserver\n')
+		server.serve_forever()
 	except (KeyboardInterrupt, SystemExit):
 		Debug.out('^C received, shutting down server')
 
 	server.socket.close()
+	return 0
 	
+#enddef main()
 
 if __name__ == '__main__':
-	main()
+    status = main()
+    sys.exit(status)
+
