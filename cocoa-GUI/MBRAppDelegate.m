@@ -130,21 +130,22 @@
 
 #pragma mark Notfications
 
-- (void)applicationWillTerminate:(NSNotification *)aNotification
-{
-	NSLog(@"willTerminate");
-	[self stopServer:nil];
-}
-
 - (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
 {
 	NSLog(@"didFinishLaunching");
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
-
+	
 	// Get playlists from iTunes
 	// Update Popup - button
 	// Select playlist that is saved to prefs.
+}
+
+
+- (void)applicationWillTerminate:(NSNotification *)aNotification
+{
+	NSLog(@"willTerminate");
+	[self stopServer:nil];
 }
 
 #pragma mark -
