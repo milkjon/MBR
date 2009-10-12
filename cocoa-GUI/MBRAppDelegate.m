@@ -17,8 +17,6 @@
 
 @implementation MBRAppDelegate
 
-#pragma mark talking to webserver
-
 - (NSString *) _makeWebRequest: (NSString *) request
 {
 	NSLog(@"%@", request);
@@ -27,9 +25,10 @@
 	return result;
 }
 
+#pragma mark -
+
 - (void) fetchRequests
 {	
-	// Add new requests to the array.
 	NSLog(@"get requests");
 	
 	//	if (! serverTask_) return;
@@ -64,21 +63,29 @@
 	[self _makeWebRequest: request];
 }
 
+- (void) reportNextSongs
+{
+	NSArray *songList = [iTunes_ nextFive];
+	NSMutableString *queryString = [NSMutableString string];
+	
+	for (int i = 0;   i < [songList count] && i < 5; i++)
+		[queryString appendString: [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]]];
+	
+	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
+}
+
+#pragma mark -
+
 #pragma mark IBActions
 
 - (IBAction) addToiTunesPlaylist: (id) sender
 {
 	NSLog(@"addToiTunes");
-	NSLog(@"%@", [arrayController selectedObjects]);
 	
 	MBTune* track = nil;
-	
 	if ([sender isKindOfClass: [NSTableView class]]) {
-		int row = [tableView clickedRow];
-		if (row == -1) 
-			return;
-		
-		track = [[arrayController arrangedObjects] objectAtIndex: row];
+		if ([tableView clickedRow] == -1) return;
+		track = [[arrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
 	} else {
 		track = [[arrayController selectedObjects] objectAtIndex: 0];	
 	}
@@ -86,23 +93,13 @@
 	if (! track) return;
 	
 	NSString *playlist = @"radio";
-	NSString *trackID = [track trackID];
-	
-	[iTunes_ addID: trackID toPlaylist: playlist];
+	[iTunes_ addID: [track trackID] toPlaylist: playlist];
 }
 
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
-	NSArray *songList = [iTunes_ nextFive];
-	NSMutableString *queryString = [NSMutableString string];
-	
-	for (int i = 0;   i < [songList count] && i < 5; i++) {
-		NSString *item = [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]];
-		[queryString appendString: item];
-	}
-	
-	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
+	[self reportNextSongs];
 }
 
 - (IBAction) updateRequests: (id) sender
@@ -130,22 +127,25 @@
 
 #pragma mark Notfications
 
+- (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
+{
+	NSLog(@"didFinishLaunching");
+	
+	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
+	
+	// Get playlists from iTunes
+	// Update Popup - button
+	// Select playlist that is saved to prefs.
+}
+
+
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
 	NSLog(@"willTerminate");
 	[self stopServer:nil];
 }
 
-- (void) applicationDidFinishLaunching:(NSNotification *)aNotification 
-{
-	NSLog(@"didFinishLaunching");
-	
-	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
-
-	// Get playlists from iTunes
-	// Update Popup - button
-	// Select playlist that is saved to prefs.
-}
+#pragma mark -
 
 - (id) init
 {
