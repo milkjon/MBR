@@ -7,50 +7,49 @@
 
 #import "MBTune.h"
 
-
 @implementation MBTune
 
--(NSString*) artist
+- (NSString*) artist
 {
 	return artist_;
 }
 
--(NSString*) title
+- (NSString*) title
 {
 	return title_;
 }
 
--(NSString*) album
+- (NSString*) album
 {
 	return album_;
 }
 
--(NSString*) genre
+- (NSString*) genre
 {
 	return genre_;
 }
 
--(NSString*) requester
+- (NSString*) requester
 {
 	return requester_;
 }
 
--(NSString*) dedication
+- (NSString*) dedication
 {
 	return dedication_;
 }
 
--(NSString*) trackID
+- (NSString*) trackID
 {
 	return trackID_;
 }
 
--(NSString*) duration
+- (NSString*) duration
 {
 	return duration_;
 }
 
--(NSDate*) requestTime
+- (NSDate*) requestTime
 {
 	return requestTime_;
 }
@@ -64,7 +63,7 @@
 	artist_ = [artist retain];
 }
 
--(void) setTitle: (NSString*) title
+- (void) setTitle: (NSString*) title
 {
 	if (title == title_)
 		return;
@@ -73,7 +72,7 @@
 	title_ = [title retain];
 }
 
--(void) setAlbum: (NSString*) album
+- (void) setAlbum: (NSString*) album
 {
 	if (album == album_)
 		return;
@@ -82,7 +81,7 @@
 	album_ = [album retain];
 }
 
--(void) setGenre: (NSString*) genre
+- (void) setGenre: (NSString*) genre
 {
 	if (genre == genre_)
 		return;
@@ -91,7 +90,7 @@
 	genre_ = [genre retain];
 }
 
--(void) setRequester: (NSString*) requester
+- (void) setRequester: (NSString*) requester
 {
 	if (requester == requester_)
 		return;
@@ -100,7 +99,7 @@
 	requester_ = [requester retain];
 }
 
--(void) setDedication: (NSString*) dedication
+- (void) setDedication: (NSString*) dedication
 {
 	if (dedication == dedication_)
 		return;
@@ -109,7 +108,7 @@
 	dedication_ = [dedication retain];
 }
 
--(void) setTrackID: (NSString*) trackID
+- (void) setTrackID: (NSString*) trackID
 {
 	if (trackID == trackID_)
 		return;
@@ -118,7 +117,7 @@
 	trackID_ = [trackID retain];
 }
 
--(void) setDuration: (NSString*) length
+- (void) setDuration: (NSString*) length
 {
 	if (length == duration_)
 		return;
@@ -127,7 +126,7 @@
 	duration_ = [length retain];
 }
 
--(void) setRequestTime: (NSDate*) requestTime
+- (void) setRequestTime: (NSDate*) requestTime
 {
 	if (requestTime == requestTime_)
 		return;
@@ -142,7 +141,7 @@
 			@"[%@] %@ %@ - %@\nded: %@, %req: %@\ndur: %@ time: %@", trackID_, genre_, artist_, title_, dedication_, requester_, duration_, requestTime_];
 }
 
-- (id) initWithXML: (NSXMLElement *)element
+- (id) initWithXML: (NSXMLElement *) element
 {
 	self = [self init];
 	
