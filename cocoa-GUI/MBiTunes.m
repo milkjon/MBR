@@ -18,6 +18,8 @@
 	return result;
 }
 
+#pragma mark -
+
 - (NSString *) currentlyPlaying
 {
 	NSString *result = [self _runAppleScript: currentlyPlayingScript_];
@@ -31,22 +33,33 @@
 	return songList;
 }
 
+- (NSArray *) playlists
+{
+	NSString *playlists = [self _runAppleScript: playlistsScript_];
+	NSArray *lists = [playlists componentsSeparatedByString: @"\r"];
+	return lists;	
+}
+
 - (void) addID: (NSString *)trackID toPlaylist: (NSString *)playlist
 {
 	NSString *source = [NSString stringWithFormat: addToiTunesScriptTemplate_, trackID, playlist]; 
 	[self _runAppleScript: source];
 }
 
+#pragma mark -
+
 - (id) init
 {
 	self = [super init];
 	if (self != nil) {
 		currentlyPlayingScript_ = [[NSString alloc] initWithContentsOfFile: 
-								   [[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
+			[[NSBundle mainBundle] pathForResource:@"getCurrentTrack" ofType:@"applescript"]];
 		nextTracksScript_ = [[NSString alloc] initWithContentsOfFile:
-							 [[NSBundle mainBundle] pathForResource:@"getNextSongs" ofType:@"applescript"]];
+			[[NSBundle mainBundle] pathForResource:@"getNextSongs" ofType:@"applescript"]];
 		addToiTunesScriptTemplate_ = [[NSString alloc] initWithContentsOfFile:
-									  [[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
+			[[NSBundle mainBundle] pathForResource:@"addToiTunes" ofType:@"applescript"]];
+		playlistsScript_ = [[NSString alloc] initWithContentsOfFile:
+			[[NSBundle mainBundle] pathForResource:@"getPlaylists" ofType:@"applescript"]];
 	}
 	return self;
 }
@@ -56,6 +69,7 @@
 	[currentlyPlayingScript_ release];
 	[nextTracksScript_ release];
 	[addToiTunesScriptTemplate_ release];
+	[playlistsScript_ release];
 	[super dealloc];
 }
 @end

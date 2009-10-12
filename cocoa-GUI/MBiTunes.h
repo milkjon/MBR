@@ -12,11 +12,14 @@
 {
 	NSString *currentlyPlayingScript_;
 	NSString *nextTracksScript_;
+	NSString *playlistsScript_;
 	NSString *addToiTunesScriptTemplate_;
 }
 
 - (NSString *) currentlyPlaying;
 - (NSArray *) nextFive; 
+- (NSArray *) playlists;
+
 - (void) addID: (NSString *)id toPlaylist: (NSString *)playlist;
 
 @end
