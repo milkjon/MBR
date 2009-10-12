@@ -10,7 +10,7 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # python library imports
-import os.path, string, unicodedata, time, os, sys, cgi, gc
+import os.path, string, unicodedata, time, os, sys, cgi, gc, urlparse, zlib
 import BaseHTTPServer
 
 # local imports
@@ -88,8 +88,6 @@ def LoadLibrary():
 newlinestripper = string.maketrans('\n\r\f','   ')
 
 class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
-	
-	import urlparse, zlib
 	
 	def sendError(self, text = 'Server error', num = 500):
 		self.send_response(num)
