@@ -64,6 +64,17 @@
 	[self _makeWebRequest: request];
 }
 
+- (void) reportNextSongs
+{
+	NSArray *songList = [iTunes_ nextFive];
+	NSMutableString *queryString = [NSMutableString string];
+	
+	for (int i = 0;   i < [songList count] && i < 5; i++)
+		[queryString appendString: [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]]];
+	
+	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
+}
+
 #pragma mark IBActions
 
 - (IBAction) addToiTunesPlaylist: (id) sender
@@ -94,15 +105,7 @@
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
-	NSArray *songList = [iTunes_ nextFive];
-	NSMutableString *queryString = [NSMutableString string];
-	
-	for (int i = 0;   i < [songList count] && i < 5; i++) {
-		NSString *item = [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]];
-		[queryString appendString: item];
-	}
-	
-	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
+	[self reportNextSongs];
 }
 
 - (IBAction) updateRequests: (id) sender
