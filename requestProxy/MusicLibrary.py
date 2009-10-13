@@ -45,10 +45,13 @@ def	String2SafeAsciiWordList(theString):
 			
 #enddef	String2SafeAsciiWordList()
 
+alphanumchars = string.digits + string.ascii_lowercase;
+
 def FirstAlphanumericChar(theString):
 	asciiStr = SafeAscii(theString).lower()
-	for c in theString:
-		if c in string.ascii_lowercase:
+	for c in asciiStr:
+		if c in alphanumchars:
+			print asciiStr, "->", c
 			return c
 	return '0'
 
@@ -167,8 +170,8 @@ class MusicLibrary:
 			firstLetter = FirstAlphanumericChar(songSortArtist)
 		else:
 			firstLetter = FirstAlphanumericChar(songSortTitle)
-		
-		if not firstLetter.isalpha():
+			
+		if not firstLetter in string.ascii_lowercase:
 			firstLetter = '0'
 		self.byLetter[firstLetter].append(songID)
 		
@@ -233,7 +236,7 @@ class MusicLibrary:
 		# sanitize data:
 		theLetter = theLetter[0].lower()
 		
-		if (theLetter.isalpha() or theLetter == '0') and self.byLetter.has_key(theLetter):
+		if (theLetter in string.ascii_lowercase or theLetter == '0') and self.byLetter.has_key(theLetter):
 			Debug.out("Searching letter", theLetter)
 			
 			songList = self.byLetter[theLetter]

@@ -87,8 +87,8 @@ class Statistics:
 			period = time.time() - (numDays * 24 * 60 * 60) # 24 hrs * 60 min * 60 sec
 
 		listToSort = []
-		for title in self.byTitle.keys():
-			filteredSongs = [tstamp for tstamp in self.byTitle[title] if tstamp >= period]
+		for title in self.bySong.keys():
+			filteredSongs = [tstamp for tstamp in self.bySong[title] if tstamp >= period]
 			listToSort.append( (len(filteredSongs), title) )
 		listToSort.sort()
 		listToSort.reverse()

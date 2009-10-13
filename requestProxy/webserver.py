@@ -843,7 +843,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			# package the result list as XML
 			entryList = []
 			for entry in resultList:
-				entryList.append('<entry><name>' + SafeXML(entry[0]) + '</name>' + \
+				if entry[1] > 0:
+					entryList.append('<entry><name>' + SafeXML(entry[0]) + '</name>' + \
 									'<count>' + str(entry[1]) + '</count></entry>')
 			
 			contentType = 'text/xml'
@@ -1507,10 +1508,10 @@ def main(argv=None):
 	
 	# FIXME
 	# create some dummy data for debugging
-	Requests[1] = {'songID': 'F36B634931C2E9A0', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
+	Requests[1] = {'songID': 'EDE3C749777F9376', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
 									'requestedBy': 'Jon', 'dedication': 'Erich' }
 	
-	Requests[2] = {'songID': '57802A1965D11511', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
+	Requests[2] = {'songID': 'BE3F7187F3FBC986', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
 									'requestedBy': 'erich', 'dedication': 'Jon' }
 	
 	NewRequests.append(1)
