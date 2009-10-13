@@ -175,8 +175,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				self.sendError('Unauthorized', 401)
 				return
 			
-			#clear = 'yes'
-			clear = 'no'
+			clear = 'yes'
 			try:
 				if args['clear'][0] in ('yes','no'):
 					clear = args['clear'][0]
