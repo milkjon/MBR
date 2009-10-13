@@ -45,9 +45,9 @@
 	NSXMLElement *item;
 	while (item = [itemEnumerator nextObject]) {
 		MBTune *tune = [[MBTune alloc] initWithXML: item];
-		 [self willChangeValueForKey: kRequests];
-		 [requests addObject: tune];
-		 [self didChangeValueForKey: kRequests];
+		[self willChangeValueForKey: kRequests];
+		[requests addObject: tune];
+		[self didChangeValueForKey: kRequests];
 	}
 }
 
