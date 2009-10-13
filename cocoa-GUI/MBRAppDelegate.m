@@ -153,8 +153,8 @@
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
-		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
-		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
+		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
+		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];
 	}
