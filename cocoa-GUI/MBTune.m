@@ -11,7 +11,7 @@
 
 - (int) ID
 {
-	return ID_;
+	return requestID_;
 }
 
 - (NSString*) artist
@@ -142,9 +142,9 @@
 	requestTime_ = [requestTime retain];
 }
 
-- (void) setID: (int) ID
+- (void) setRequestID: (int) ID
 {
-	ID_ = ID;
+	requestID_ = ID;
 }
 
 #pragma mark -
@@ -223,3 +223,4 @@
 }
 
 @end
+
