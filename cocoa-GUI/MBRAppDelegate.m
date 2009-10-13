@@ -74,6 +74,13 @@
 	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
 
+- (void) reportNowPlaying
+{
+	[self reportCurrentSong];
+	[self reportNextSongs];
+}
+
+
 #pragma mark -
 
 #pragma mark IBActions
@@ -154,7 +161,7 @@
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
-		songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
+		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];
 	}
@@ -167,8 +174,8 @@
 	
 	[requestCheckTimer_ invalidate];
 	[requestCheckTimer_ release];
-	[songQueryTimer_ invalidate];
-	[songQueryTimer_ release];
+	[nowPlayingReportTimer_ invalidate];
+	[nowPlayingReportTimer_ release];
 
 	[requests release];
 	[iTunes_ release];
