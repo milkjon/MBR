@@ -155,6 +155,8 @@
 	
 	if (!self) return nil;
 	
+	[self setRequestID: [[[element attributeForName:@"id"] stringValue] intValue]];
+
 	NSXMLElement *detail;
 	NSArray *details = [element children];
 	NSEnumerator *detailEnum = [details objectEnumerator];
