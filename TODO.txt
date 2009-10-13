@@ -8,6 +8,10 @@
 #	TASK/STATUS		COMMENTS
 ------------------------------------------------------------------------------------------------------------------------
 
+1. Cocoa stuff		- Port
+					- Find out iTunes library location
+					
+
 	
 4.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
 	(Jonathan)		and python.
