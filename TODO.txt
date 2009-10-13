@@ -10,6 +10,7 @@
 
 1. Cocoa stuff		- Port
 					- Find out iTunes library location
+					- requests don't work refresh properly
 					
 
 	
