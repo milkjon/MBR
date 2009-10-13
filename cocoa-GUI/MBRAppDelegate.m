@@ -32,8 +32,7 @@
 	NSLog(@"get requests");
 	
 	//	if (! serverTask_) return;
-	NSString *s = @"http://localhost:15800/new-requests/";
-	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
+	NSString *result = [self _makeWebRequest: @"new-requests/"];
 	
 	// parse the result and update the array
 	NSXMLDocument *d = [[NSXMLDocument alloc] initWithXMLString:result options:0 error:nil];
