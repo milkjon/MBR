@@ -122,7 +122,7 @@ class MusicLibrary:
 	def addSong(self, songData):
 		# Add a song to the library and update entries in the search lookuptables
 		#	arguments:
-		#		songData  as  dict { 'id', 'artist', 'title', 'album', 'genre', 'duration', ('sortTile', 'sortArtist') }
+		#		songData  as  dict { 'id', 'artist', 'title', 'album', 'genre', 'duration', 'sortTile', 'sortArtist' }
 		# 	returns:
 		#		(void)
 		

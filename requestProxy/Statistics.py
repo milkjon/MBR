@@ -27,6 +27,7 @@ class Statistics:
 		self.byArtist = {}
 		self.byGenre = {}
 		self.bySong = {}
+		self.bySongID = {}
 	
 	def loadFromLog(self, logFile):
 		# must be implemented by the subclass
@@ -37,6 +38,7 @@ class Statistics:
 		songTitle = SafeAscii(songInfo['title'].strip()).lower()
 		songArtist = SafeAscii(songInfo['artist'].strip()).lower()
 		songGenre = SafeAscii(songInfo['genre'].strip()).lower()
+		songID = songInfo['songID']
 		timestamp = long(songInfo['time'])
 		
 		if songArtist and songArtist != '[Unknown]':
@@ -58,6 +60,11 @@ class Statistics:
 			if not songGenre in self.byGenre:
 				self.byGenre[songGenre] = []
 			self.byGenre[songGenre].append(timestamp)
+			
+		if songID:
+			if not songID in self.bySongID:
+				self.bySongID[songID] = []
+			self.bySongID[songID].append(timestamp)
 		
 	
 	def getTopArtists(self, count, numDays):
@@ -117,6 +124,39 @@ class Statistics:
 		
 		return resultList
 		
+	def getMostRecentBy_SongID(self, songID):
+	
+		try:
+			songIDList = self.bySongID[songID]
+		except LookupError:
+			return None
+			
+		if not songIDList:
+			return None
+			
+		listToSort = list(songIDList)
+		listToSort.sort()
+		listToSort.reverse()
+		
+		return listToSort[0]
+		
+	def getMostRecentBy_Artist(self, artist):
+		
+		try:
+			artistList = self.byArtist[artist]
+		except LookupError:
+			return None
+			
+		if not artistList:
+			return None
+			
+		listToSort = list(artistList)
+		listToSort.sort()
+		listToSort.reverse()
+		
+		return listToSort[0]
+	
+	
 #endclass Statistics
 
 
@@ -146,9 +186,13 @@ class PlayedStatistics(Statistics):
 			
 	def start_element(self, name, attrs):	
 		if name == u'played':
-			self.playData.update({'time': attrs['time'], 'artist':'', 'title':'', 'genre':''})
+			self.playData.update({'time': attrs['time'], 'songID':'', 'artist':'', 'title':'', 'genre':''})
 		elif name == u'song':
 			self.inSong = 1
+			try:
+				self.playData['songID'] = attrs['id']
+			except LookupError:
+				pass
 		self.currentTag = name
 	#enddef start_element()
 	
@@ -199,9 +243,13 @@ class RequestStatistics(Statistics):
 
 	def start_element(self, name, attrs):	
 		if name == u'request':
-			self.playData.update({'time': '', 'artist':'', 'title':'', 'genre':''})
+			self.playData.update({'time': '', 'songID':'', 'artist':'', 'title':'', 'genre':''})
 		elif name == u'song':
 			self.inSong = 1
+			try:
+				self.playData['songID'] = attrs['id']
+			except LookupError:
+				pass
 		self.currentTag = name
 	#enddef start_element()
 	

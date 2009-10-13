@@ -119,6 +119,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		#	/reload-library			Locally				Action
 		#	/set-config				Locally				Set
 		#	/terminate				Locally				Action
+		#	/song					Local / Remote		Query
 		#	/search					Remote webserver	Query
 		#	/requests				Remote webserver	Query
 		#	/queue					Remote webserver	Query
@@ -267,7 +268,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				theTime = long(time.time())
 				History.append( (theTime, songID, requestID) )
 				LogSong(theTime, songID, requestID)
-				PlayStats.addSong({'artist':thisSong['artist'], 'title':thisSong['title'],
+				PlayStats.addSong({'songID': songID, 'artist':thisSong['artist'], 'title':thisSong['title'],
 										'genre':thisSong['genre'], 'time':theTime})
 										
 				self.sendData('OK')
@@ -432,6 +433,96 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		
 			sys.exit()
 			
+		
+		#-----------------------------------------------------------------------------------------------------------
+		#  command == '/song'
+		#
+		#	This interface is used to get information about a specific song.
+		#
+		#	Query string parameters:
+		#		PARAM		TYPE			REQ?	DESCRIPTION
+		#		----------------------------------------------------------------------------------------------------
+		#		songid=		string			Y		ID of song to retrieve
+		#		stats=		string			N		if stats == "yes", send additional information about the song
+		#		compress=	string	 		N		If compress == "", don't compress.
+		#											If compress == "gzip", return results gzip'ed
+		#
+		#	Returns:
+		#		<songinfo>
+		#			<song id="(songID)">
+		#				<artist></artist><title></title><album></album><genre></genre><duration></duration>
+		#			</song>
+		#		[ optional: included if stats=='yes' ]
+		#			<stats>
+		#				<lastplayed>(timestamp|'none')</lastplayed>
+		#				<lastrequested>(timestamp|'none')</lastrequested>
+		#				<queued>('yes'|'no')</queued>
+		#			</stats>
+		#		[ /optional ]
+		#		</songinfo>
+		#-----------------------------------------------------------------------------------------------------------
+		elif command == '/song':
+			
+			if args is None or not args.has_key('songid') or not args['songid']:
+				self.sendError('Incomple query parameters:  /song?songid=X  required')
+				return
+				
+			songID = args['songid'][0]
+	
+			if not Library.songExists(songID):
+				self.sendError('INVALID')
+				return
+				
+			includeStats = 'no'
+			try:
+				includeStats = args['stats'][0]
+			except LookupError:
+				pass
+			
+			# package the information
+			packageList =	['<?xml version="1.0" encoding="UTF-8"?>\n',
+								'<songinfo>',
+								PackageSong(songID)]
+			
+			if includeStats == 'yes':
+				packageList.append('<stats>')
+				
+				# find last play?
+				lastplay = PlayStats.getMostRecentBy_SongID(songID)
+				if lastplay:
+					packageList.extend(['<lastplayed>', str(lastplay), '</lastplayed>'])
+				else:
+					packageList.append('<lastplayed>none</lastplayed>')
+					
+				# find last play?
+				lastreq = RequestStats.getMostRecentBy_SongID(songID)
+				if lastreq:
+					packageList.extend(['<lastrequested>', str(lastreq), '</lastrequested>'])
+				else:
+					packageList.append('<lastrequested>none</lastrequested>')
+				
+				# find in SongQueue?
+				found = [id for (id, dummy) in SongQueue if id == songID]
+				if found:
+					packageList.append('<queued>yes</queued>')
+				else:
+					packageList.append('<queued>no</queued>')
+					
+				packageList.append('</stats>')
+				
+			packageList.append('</songinfo>')
+			
+			contentType = 'text/xml'
+			packagedResults = string.join(packageList, '')
+			
+			# gzip the results?
+			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
+				contentType = 'application/x-gzip'
+				packagedResults = zlib.compress(packagedResults)
+			
+			# send it back
+			self.sendData(packagedResults, contentType)
+		
 				
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/search'
@@ -965,140 +1056,140 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		#
 		#---------------------------------------------------------------------------------------------------------------
 	
-		try:
+		#try:
 			
-			# is the client in the list of allowed clients?
-			if not self.client_address[0] in Config['AllowedClients'] \
-					and not self.address_string() in Config['AllowedClients']:
-				self.sendError('Unauthorized', 401)
+		# is the client in the list of allowed clients?
+		if not self.client_address[0] in Config['AllowedClients'] \
+				and not self.address_string() in Config['AllowedClients']:
+			self.sendError('Unauthorized', 401)
+			return
+		
+		# split the request into the "file name" and the "query string"
+		command, sepChar, queryStr = self.path.partition('?')
+		if command.endswith('/'):
+			command = command[0:len(command)-1]
+		
+		# get the form data
+		form = cgi.parse_qs(self.rfile.read(int(self.headers.getheader('Content-Length'))))
+		
+		if command == '/req':
+
+			if not form or not form.has_key('songID') or not form.has_key('host') or not form['songID'] or not form['host']:
+				self.sendRequestError(700)
+				return
+				
+			global RequestCount
+			
+			songID = form['songID'][0]
+			hostIP = form['host'][0]
+			
+			requestedBy = ''
+			if form.has_key('requestedBy') and form['requestedBy']:
+				requestedBy = form['requestedBy'][0].strip()
+				# strip newlines
+				requestedBy = requestedBy.translate(newlinestripper)
+			
+			dedication = ''
+			if form.has_key('dedication') and form['dedication']:
+				dedication = form['dedication'][0].strip()
+				# strip newlines
+				dedication = dedication.translate(newlinestripper)
+			
+			# is it a valid song?
+			requestedSong = Library.getSong(songID)
+			if requestedSong is None:
+				self.sendRequestError(703)
+				return
+
+			# lookup in Hosts dict. if it doesn't exist, add an entry
+			if not Hosts.has_key(hostIP):
+				Hosts[hostIP] = { 'requests': [], 'banned': 0 }
+			
+			# is the host banned?
+			if Hosts[hostIP]['banned']:
+				self.sendRequestError(701)
 				return
 			
-			# split the request into the "file name" and the "query string"
-			command, sepChar, queryStr = self.path.partition('?')
-			if command.endswith('/'):
-				command = command[0:len(command)-1]
+			curTime = time.time()
+			oneHourAgo = curTime - (60 * 60)  # 1 hour = 60 minutes = 60 * 60 seconds
+			tenMinAgo = curTime - (10 * 60)   # 10 mins = 10 * 60 seconds
 			
-			# get the form data
-			form = cgi.parse_qs(self.rfile.read(int(self.headers.getheader('Content-Length'))))
-			
-			if command == '/req':
+			# check if the host request limit has been met:
+			requestsInLastHour = 0
+			requestedSongInLast10Minutes = 0
+			for r in Hosts[hostIP]['requests']:
+				if r['time'] >= oneHourAgo:
+					requestsInLastHour += 1
 
-				if not form or not form.has_key('songID') or not form.has_key('host') or not form['songID'] or not form['host']:
-					self.sendRequestError(700)
-					return
+				if r['time'] >= tenMinAgo:
+					if r['songID'] == songID:
+						requestedSongInLast10Minutes += 1
 					
-				global RequestCount
+			if requestsInLastHour >= Config['maxRequests_User']:
+				self.sendRequestError(704)
+				return
 				
-				songID = form['songID'][0]
-				hostIP = form['host'][0]
-				
-				requestedBy = ''
-				if form.has_key('requestedBy') and form['requestedBy']:
-					requestedBy = form['requestedBy'][0].strip()
-					# strip newlines
-					requestedBy = requestedBy.translate(newlinestripper)
-				
-				dedication = ''
-				if form.has_key('dedication') and form['dedication']:
-					dedication = form['dedication'][0].strip()
-					# strip newlines
-					dedication = dedication.translate(newlinestripper)
-				
-				# is it a valid song?
-				requestedSong = Library.getSong(songID)
-				if requestedSong is None:
-					self.sendRequestError(703)
-					return
+			if requestedSongInLast10Minutes > 0:
+				self.sendRequestError(708)
+				return
 
-				# lookup in Hosts dict. if it doesn't exist, add an entry
-				if not Hosts.has_key(hostIP):
-					Hosts[hostIP] = { 'requests': [], 'banned': 0 }
-				
-				# is the host banned?
-				if Hosts[hostIP]['banned']:
-					self.sendRequestError(701)
-					return
-				
-				curTime = time.time()
-				oneHourAgo = curTime - (60 * 60)  # 1 hour = 60 minutes = 60 * 60 seconds
-				tenMinAgo = curTime - (10 * 60)   # 10 mins = 10 * 60 seconds
-				
-				# check if the host request limit has been met:
-				requestsInLastHour = 0
-				requestedSongInLast10Minutes = 0
-				for r in Hosts[hostIP]['requests']:
-					if r['time'] >= oneHourAgo:
-						requestsInLastHour += 1
-
-					if r['time'] >= tenMinAgo:
-						if r['songID'] == songID:
-							requestedSongInLast10Minutes += 1
-						
-				if requestsInLastHour >= Config['maxRequests_User']:
-					self.sendRequestError(704)
-					return
+			# check if the artist, album, or song limit been met:
+			artistRequestsInLastHour = 0
+			albumRequestsInLastHour = 0
+			songRequestsInLastHour = 0
+			for reqInfo in Requests.values():
+				if reqInfo['time'] >= oneHourAgo:
+					thisSong = Library.getSong(reqInfo['songID'])
+					if not thisSong is None:
+						if thisSong['artist'] == requestedSong['artist']:
+							artistRequestsInLastHour += 1
+						if thisSong['album'] == requestedSong['album']:
+							albumRequestsInLastHour += 1
+						if reqInfo['songID'] == songID:
+							songRequestsInLastHour += 1
 					
-				if requestedSongInLast10Minutes > 0:
-					self.sendRequestError(708)
-					return
-
-				# check if the artist, album, or song limit been met:
-				artistRequestsInLastHour = 0
-				albumRequestsInLastHour = 0
-				songRequestsInLastHour = 0
-				for reqInfo in Requests.values():
-					if reqInfo['time'] >= oneHourAgo:
-						thisSong = Library.getSong(reqInfo['songID'])
-						if not thisSong is None:
-							if thisSong['artist'] == requestedSong['artist']:
-								artistRequestsInLastHour += 1
-							if thisSong['album'] == requestedSong['album']:
-								albumRequestsInLastHour += 1
-							if reqInfo['songID'] == songID:
-								songRequestsInLastHour += 1
-						
-				if songRequestsInLastHour >= Config['maxRequests_Song']:
-					self.sendRequestError(601)
-					return
-				elif artistRequestsInLastHour >= Config['maxRequests_Artist']:
-					self.sendRequestError(602)
-					return
-				elif albumRequestsInLastHour >= Config['maxRequests_Album']:
-					self.sendRequestError(604)
-					return
-				
-				# ok, all checks passed
-				RequestCount = RequestCount + 1
-				requestID = RequestCount
-				requestTime = long(time.time())
-				
-				# update Hosts list
-				Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
-				
-				# add request to Requests list
-				Requests[requestID] = {'songID': songID, 'time': requestTime, 'host': hostIP, 'status': 'waiting', 
-										'requestedBy': requestedBy, 'dedication': dedication }
-
-				# add to NewRequests list
-				NewRequests.append(requestID)
-				
-				# log the request
-				LogRequest(requestID)
-				RequestStats.addSong({'artist':requestedSong['artist'], 'title':requestedSong['title'],
-										'genre':requestedSong['genre'], 'time':requestTime})
-
-				# send a response back in XML
-				response = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
-							'<request><application><apptype>MBRadio</apptype><version>1.0</version></application>' + \
-							'<status><code>200</code><message>Request Received</message>' + \
-							'<requestID>' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
-				
-				self.sendData(response, 'text/xml')
+			if songRequestsInLastHour >= Config['maxRequests_Song']:
+				self.sendRequestError(601)
+				return
+			elif artistRequestsInLastHour >= Config['maxRequests_Artist']:
+				self.sendRequestError(602)
+				return
+			elif albumRequestsInLastHour >= Config['maxRequests_Album']:
+				self.sendRequestError(604)
+				return
 			
-			#endif command == '/req'
+			# ok, all checks passed
+			RequestCount = RequestCount + 1
+			requestID = RequestCount
+			requestTime = long(time.time())
 			
-		except :
-			self.sendError('Unknown server error')
+			# update Hosts list
+			Hosts[hostIP]['requests'].append( {'id': requestID, 'songID': songID, 'time': requestTime } )
+			
+			# add request to Requests list
+			Requests[requestID] = {'songID': songID, 'time': requestTime, 'host': hostIP, 'status': 'waiting', 
+									'requestedBy': requestedBy, 'dedication': dedication }
+
+			# add to NewRequests list
+			NewRequests.append(requestID)
+			
+			# log the request
+			LogRequest(requestID)
+			RequestStats.addSong({'songID': songID, 'artist':requestedSong['artist'], 'title':requestedSong['title'],
+									'genre':requestedSong['genre'], 'time':requestTime})
+
+			# send a response back in XML
+			response = '<?xml version="1.0" encoding="UTF-8"?>\n' + \
+						'<request><application><apptype>MBRadio</apptype><version>1.0</version></application>' + \
+						'<status><code>200</code><message>Request Received</message>' + \
+						'<requestID>' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
+			
+			self.sendData(response, 'text/xml')
+		
+		#endif command == '/req'
+			
+		#except :
+		#	self.sendError('Unknown server error')
 			
 	#enddef do_POST
 
@@ -1156,7 +1247,7 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 	if not requestID is None and requestID in Requests:
 		reqInfo = Requests[requestID]
 		
-		packageList.extend(['<requested>',
+		packageList.extend(['<requested id="' + str(requestID) + '">',
 							'<time>', str(reqInfo['time']), '</time>',
 							'<host>', SafeXML(reqInfo['host']), '</host>', 
 							'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
