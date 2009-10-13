@@ -9,6 +9,11 @@
 
 @implementation MBTune
 
+- (int) ID
+{
+	return ID_;
+}
+
 - (NSString*) artist
 {
 	return artist_;
@@ -135,6 +140,11 @@
 	
 	[requestTime_ release];
 	requestTime_ = [requestTime retain];
+}
+
+- (void) setID: (int) ID
+{
+	ID_ = ID;
 }
 
 #pragma mark -
