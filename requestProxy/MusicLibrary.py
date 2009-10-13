@@ -51,7 +51,6 @@ def FirstAlphanumericChar(theString):
 	asciiStr = SafeAscii(theString).lower()
 	for c in asciiStr:
 		if c in alphanumchars:
-			print asciiStr, "->", c
 			return c
 	return '0'
 

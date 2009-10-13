@@ -60,7 +60,7 @@
 	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
 					be included in this project.
 	
-	STATUS			None
+	STATUS			Almost complete :)
 
 === Done
 
