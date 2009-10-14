@@ -9,9 +9,8 @@
 ------------------------------------------------------------------------------------------------------------------------
 
 1. Cocoa stuff		- Port
-					- Find out iTunes library location
-					- requests don't work refresh properly
-					
+					- show prefs window
+					- set default prefs
 
 	
 4.	INVESTIGATE		We need a way to store configuration variables that can be read/written by both the objc app
@@ -51,10 +50,6 @@
 	
 	RESULT			?
 
-2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
-	(Jonathan)
-	PRIORITY		Low
-	STATUS			Incomplete
 	
 3.	TO DO			HTTP requests should be done on background thread.
 	(Jonathan)
@@ -68,6 +63,11 @@
 	STATUS			Almost complete :)
 
 === Done
+
+2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
+	(Jonathan)
+	PRIORITY		Low
+	STATUS			Incomplete
 
 1.	TO DO			Objc app needs to query the python proxy to get the list of new requests.
 	(Jonathan)		This can be done by sending an HTTP GET request to http://localhost:15800/new-requests/
