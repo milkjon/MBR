@@ -13,7 +13,7 @@
 		<object class="NSMutableArray" key="IBDocument.EditedObjectIDs">
 			<bool key="EncodedWithXMLCoder">YES</bool>
 			<integer value="57"/>
-			<integer value="535"/>
+			<integer value="533"/>
 			<integer value="618"/>
 		</object>
 		<object class="NSArray" key="IBDocument.PluginDependencies">
@@ -1327,7 +1327,7 @@
 				<int key="NSWindowBacking">2</int>
 				<string key="NSWindowRect">{{196, 257}, {626, 253}}</string>
 				<int key="NSWTFlags">611844096</int>
-				<string key="NSWindowTitle">MilkBoys Radio</string>
+				<string key="NSWindowTitle">Radio</string>
 				<string key="NSWindowClass">NSWindow</string>
 				<nil key="NSViewClass"/>
 				<string key="NSWindowContentMaxSize">{1.79769e+308, 1.79769e+308}</string>
@@ -1807,18 +1807,18 @@
 								<int key="NSPeriodicInterval">25</int>
 							</object>
 						</object>
-						<object class="NSButton" id="49411466">
+						<object class="NSButton" id="536027253">
 							<reference key="NSNextResponder" ref="273937983"/>
 							<int key="NSvFlags">268</int>
 							<string key="NSFrame">{{134, 211}, {106, 23}}</string>
 							<reference key="NSSuperview" ref="273937983"/>
 							<bool key="NSEnabled">YES</bool>
-							<object class="NSButtonCell" key="NSCell" id="183741392">
+							<object class="NSButtonCell" key="NSCell" id="911517448">
 								<int key="NSCellFlags">-2080244224</int>
 								<int key="NSCellFlags2">134217728</int>
 								<string key="NSContents">Stop Server</string>
 								<reference key="NSSupport" ref="518803930"/>
-								<reference key="NSControlView" ref="49411466"/>
+								<reference key="NSControlView" ref="536027253"/>
 								<int key="NSButtonFlags">-2033434369</int>
 								<int key="NSButtonFlags2">34</int>
 								<string key="NSAlternateContents"/>
@@ -1827,18 +1827,18 @@
 								<int key="NSPeriodicInterval">75</int>
 							</object>
 						</object>
-						<object class="NSButton" id="451906209">
+						<object class="NSButton" id="819932331">
 							<reference key="NSNextResponder" ref="273937983"/>
 							<int key="NSvFlags">268</int>
 							<string key="NSFrame">{{20, 211}, {106, 23}}</string>
 							<reference key="NSSuperview" ref="273937983"/>
 							<bool key="NSEnabled">YES</bool>
-							<object class="NSButtonCell" key="NSCell" id="952058571">
+							<object class="NSButtonCell" key="NSCell" id="322198081">
 								<int key="NSCellFlags">-2080244224</int>
 								<int key="NSCellFlags2">134217728</int>
 								<string key="NSContents">Start Server</string>
 								<reference key="NSSupport" ref="518803930"/>
-								<reference key="NSControlView" ref="451906209"/>
+								<reference key="NSControlView" ref="819932331"/>
 								<int key="NSButtonFlags">-2033434369</int>
 								<int key="NSButtonFlags2">34</int>
 								<string key="NSAlternateContents"/>
@@ -2973,7 +2973,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">stopServer:</string>
 						<reference key="source" ref="976324537"/>
-						<reference key="destination" ref="49411466"/>
+						<reference key="destination" ref="536027253"/>
 					</object>
 					<int key="connectionID">649</int>
 				</object>
@@ -2981,7 +2981,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">startServer:</string>
 						<reference key="source" ref="976324537"/>
-						<reference key="destination" ref="451906209"/>
+						<reference key="destination" ref="819932331"/>
 					</object>
 					<int key="connectionID">651</int>
 				</object>
@@ -4033,8 +4033,8 @@
 							<reference ref="553533465"/>
 							<reference ref="506703920"/>
 							<reference ref="1048596305"/>
-							<reference ref="49411466"/>
-							<reference ref="451906209"/>
+							<reference ref="536027253"/>
+							<reference ref="819932331"/>
 						</object>
 						<reference key="parent" ref="818718300"/>
 					</object>
@@ -4436,31 +4436,31 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">645</int>
-						<reference key="object" ref="49411466"/>
+						<reference key="object" ref="536027253"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="183741392"/>
+							<reference ref="911517448"/>
 						</object>
 						<reference key="parent" ref="273937983"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">646</int>
-						<reference key="object" ref="183741392"/>
-						<reference key="parent" ref="49411466"/>
+						<reference key="object" ref="911517448"/>
+						<reference key="parent" ref="536027253"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">647</int>
-						<reference key="object" ref="451906209"/>
+						<reference key="object" ref="819932331"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="952058571"/>
+							<reference ref="322198081"/>
 						</object>
 						<reference key="parent" ref="273937983"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">648</int>
-						<reference key="object" ref="952058571"/>
-						<reference key="parent" ref="451906209"/>
+						<reference key="object" ref="322198081"/>
+						<reference key="parent" ref="819932331"/>
 					</object>
 				</object>
 			</object>
@@ -4889,7 +4889,7 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{{525, 802}, {197, 73}}</string>
-					<string>{{380, 836}, {396, 20}}</string>
+					<string>{{380, 1536}, {396, 20}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{74, 862}</string>
@@ -4994,9 +4994,9 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{95, 94}, {626, 253}}</string>
+					<string>{{95, 794}, {626, 253}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{95, 94}, {626, 253}}</string>
+					<string>{{95, 794}, {626, 253}}</string>
 					<integer value="1"/>
 					<string>{{11, 666}, {480, 270}}</string>
 					<string>{3.40282e+38, 3.40282e+38}</string>
@@ -5020,7 +5020,7 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
-					<string>{{392, 653}, {183, 183}}</string>
+					<string>{{392, 657}, {183, 183}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{{23, 794}, {245, 183}}</string>
@@ -5045,9 +5045,9 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{210, 484}, {242, 180}}</string>
+					<string>{{210, 1184}, {242, 180}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{210, 484}, {242, 180}}</string>
+					<string>{{210, 1184}, {242, 180}}</string>
 					<boolean value="NO"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<object class="NSMutableArray">
