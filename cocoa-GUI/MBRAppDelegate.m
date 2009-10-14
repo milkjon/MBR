@@ -25,6 +25,28 @@
 	return result;
 }
 
+- (NSString *) _iTunesLibraryFilePath
+{
+	NSUserDefaults *defaults = [[[NSUserDefaults alloc] init] autorelease];
+	[defaults synchronize];
+	[defaults addSuiteNamed: @"com.apple.iApps"];
+	NSArray *iTunesDBURLs = [[defaults dictionaryRepresentation] objectForKey: @"iTunesRecentDatabases"];
+
+	if (!iTunesDBURLs)
+		return nil;
+	
+	NSString *libraryURL;
+	NSEnumerator *e = [iTunesDBURLs objectEnumerator];
+	while (libraryURL = [e nextObject])
+	{
+		NSString *libraryPath = [[NSURL URLWithString: libraryURL] path];
+		if ([[NSFileManager defaultManager] fileExistsAtPath: libraryPath])
+			return libraryPath;
+	}
+	
+	return nil;
+}
+
 #pragma mark -
 
 - (void) fetchRequests
@@ -117,8 +139,22 @@
 - (IBAction) startServer: (id) sender
 {
 	NSLog(@"Start Server");
-	serverTask_ = [NSTask launchedTaskWithLaunchPath: PYTHON
-		arguments: [NSArray arrayWithObject: [[NSBundle mainBundle] pathForResource:@"webserver" ofType:@"py"]]];
+	
+	NSString *libraryPath = [self _iTunesLibraryFilePath];
+	NSString *port = [[NSUserDefaults standardUserDefaults] objectForKey: @"networkPort"];
+					  
+	NSLog(@"%@ %@", libraryPath, port);
+	
+	if (!libraryPath || !port)
+		return;
+	
+	serverTask_ = [NSTask 
+		launchedTaskWithLaunchPath: PYTHON
+		arguments: [NSArray arrayWithObjects: 
+			[[NSBundle mainBundle] pathForResource:@"webserver" ofType:@"py"],
+			@"--port", port,
+			@"--library", libraryPath,
+			nil]];
 				
 	[serverTask_ retain];
 }
