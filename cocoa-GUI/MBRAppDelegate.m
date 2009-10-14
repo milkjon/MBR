@@ -148,6 +148,8 @@
 	if (!libraryPath || !port)
 		return;
 	
+	[self willChangeValueForKey: @"serverTask_"];
+	
 	serverTask_ = [NSTask 
 		launchedTaskWithLaunchPath: PYTHON
 		arguments: [NSArray arrayWithObjects: 
@@ -155,7 +157,9 @@
 			@"--port", port,
 			@"--library", libraryPath,
 			nil]];
-				
+
+	[self didChangeValueForKey: @"serverTask_"];
+	
 	[serverTask_ retain];
 }
 
@@ -164,7 +168,10 @@
 	NSLog(@"Stop Server");
 	[serverTask_ terminate];
 	[serverTask_ release];
+	[self willChangeValueForKey: @"serverTask_"];
 	serverTask_ = nil;
+	[self didChangeValueForKey: @"serverTask_"];
+
 }
 
 #pragma mark Notfications

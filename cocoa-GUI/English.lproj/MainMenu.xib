@@ -1847,18 +1847,18 @@
 								<int key="NSPeriodicInterval">75</int>
 							</object>
 						</object>
-						<object class="NSButton" id="441253982">
+						<object class="NSButton" id="692384336">
 							<reference key="NSNextResponder" ref="273937983"/>
 							<int key="NSvFlags">292</int>
 							<string key="NSFrame">{{20, 83}, {18, 18}}</string>
 							<reference key="NSSuperview" ref="273937983"/>
 							<bool key="NSEnabled">YES</bool>
-							<object class="NSButtonCell" key="NSCell" id="162118672">
+							<object class="NSButtonCell" key="NSCell" id="844383398">
 								<int key="NSCellFlags">-2080244224</int>
 								<int key="NSCellFlags2">134217728</int>
 								<string key="NSContents"/>
 								<reference key="NSSupport" ref="518803930"/>
-								<reference key="NSControlView" ref="441253982"/>
+								<reference key="NSControlView" ref="692384336"/>
 								<int key="NSButtonFlags">-2033434369</int>
 								<int key="NSButtonFlags2">268435462</int>
 								<object class="NSCustomResource" key="NSNormalImage">
@@ -3013,7 +3013,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">remove:</string>
 						<reference key="source" ref="603553013"/>
-						<reference key="destination" ref="441253982"/>
+						<reference key="destination" ref="692384336"/>
 					</object>
 					<int key="connectionID">654</int>
 				</object>
@@ -3032,6 +3032,46 @@
 						<reference key="destination" ref="1048596305"/>
 					</object>
 					<int key="connectionID">656</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBBindingConnection" key="connection">
+						<string key="label">enabled: serverTask_</string>
+						<reference key="source" ref="819932331"/>
+						<reference key="destination" ref="976324537"/>
+						<object class="NSNibBindingConnector" key="connector">
+							<reference key="NSSource" ref="819932331"/>
+							<reference key="NSDestination" ref="976324537"/>
+							<string key="NSLabel">enabled: serverTask_</string>
+							<string key="NSBinding">enabled</string>
+							<string key="NSKeyPath">serverTask_</string>
+							<object class="NSDictionary" key="NSOptions">
+								<string key="NS.key.0">NSValueTransformerName</string>
+								<string key="NS.object.0">NSIsNil</string>
+							</object>
+							<int key="NSNibBindingConnectorVersion">2</int>
+						</object>
+					</object>
+					<int key="connectionID">660</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBBindingConnection" key="connection">
+						<string key="label">enabled: serverTask_</string>
+						<reference key="source" ref="536027253"/>
+						<reference key="destination" ref="976324537"/>
+						<object class="NSNibBindingConnector" key="connector">
+							<reference key="NSSource" ref="536027253"/>
+							<reference key="NSDestination" ref="976324537"/>
+							<string key="NSLabel">enabled: serverTask_</string>
+							<string key="NSBinding">enabled</string>
+							<string key="NSKeyPath">serverTask_</string>
+							<object class="NSDictionary" key="NSOptions">
+								<string key="NS.key.0">NSValueTransformerName</string>
+								<string key="NS.object.0">NSIsNotNil</string>
+							</object>
+							<int key="NSNibBindingConnectorVersion">2</int>
+						</object>
+					</object>
+					<int key="connectionID">664</int>
 				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -4083,7 +4123,7 @@
 							<reference ref="553533465"/>
 							<reference ref="506703920"/>
 							<reference ref="1048596305"/>
-							<reference ref="441253982"/>
+							<reference ref="692384336"/>
 						</object>
 						<reference key="parent" ref="818718300"/>
 					</object>
@@ -4513,17 +4553,17 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">652</int>
-						<reference key="object" ref="441253982"/>
+						<reference key="object" ref="692384336"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="162118672"/>
+							<reference ref="844383398"/>
 						</object>
 						<reference key="parent" ref="273937983"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">653</int>
-						<reference key="object" ref="162118672"/>
-						<reference key="parent" ref="441253982"/>
+						<reference key="object" ref="844383398"/>
+						<reference key="parent" ref="692384336"/>
 					</object>
 				</object>
 			</object>
@@ -5186,7 +5226,7 @@
 				</object>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">656</int>
+			<int key="maxID">664</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">
