@@ -9,6 +9,11 @@
 
 @implementation MBTune
 
+- (int) ID
+{
+	return requestID_;
+}
+
 - (NSString*) artist
 {
 	return artist_;
@@ -137,6 +142,11 @@
 	requestTime_ = [requestTime retain];
 }
 
+- (void) setRequestID: (int) ID
+{
+	requestID_ = ID;
+}
+
 #pragma mark -
 
 - (id) initWithXML: (NSXMLElement *) element
@@ -145,6 +155,8 @@
 	
 	if (!self) return nil;
 	
+	[self setRequestID: [[[element attributeForName:@"id"] stringValue] intValue]];
+
 	NSXMLElement *detail;
 	NSArray *details = [element children];
 	NSEnumerator *detailEnum = [details objectEnumerator];
@@ -213,3 +225,4 @@
 }
 
 @end
+

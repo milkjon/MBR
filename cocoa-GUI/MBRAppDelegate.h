@@ -11,7 +11,7 @@
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *requests;
 	NSTimer *requestCheckTimer_;
-	NSTimer *songQueryTimer_;
+	NSTimer *nowPlayingReportTimer_;
 	
 	MBiTunes *iTunes_;
 

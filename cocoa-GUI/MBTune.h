@@ -16,6 +16,7 @@
 	NSString *duration_;
 	NSString *genre_;
 	
+	int requestID_;
 	NSDate* requestTime_;
 	NSString* requester_;
 	NSString* dedication_;

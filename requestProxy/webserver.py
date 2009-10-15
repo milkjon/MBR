@@ -194,8 +194,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				self.sendError('Unauthorized', 401)
 				return
 			
-			#clear = 'yes'
-			clear = 'no'
+			clear = 'yes'
 			try:
 				if args['clear'][0] in ('yes','no'):
 					clear = args['clear'][0]
@@ -1504,10 +1503,10 @@ def LoadConfig():
 		raise ConfigError
 		
 	# iTunesDB
-	if not Config.has_key('iTubesDB'):
+	if not Config.has_key('iTunesDB'):
 		if isMac:
 			# FIXME
-			Config['iTunesDB'] = '/Users/Shared/iTunes/iTunes Music Library.xml'
+			Config['iTunesDB'] = os.path.expanduser('~/Music/iTunes/iTunes Music Library.xml')
 		else:
 			Config['iTunesDB'] = os.path.expanduser('~\Music\iTunes\iTunes Music Library.xml')
 	

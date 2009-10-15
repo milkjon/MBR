@@ -25,6 +25,28 @@
 	return result;
 }
 
+- (NSString *) _iTunesLibraryFilePath
+{
+	NSUserDefaults *defaults = [[[NSUserDefaults alloc] init] autorelease];
+	[defaults synchronize];
+	[defaults addSuiteNamed: @"com.apple.iApps"];
+	NSArray *iTunesDBURLs = [[defaults dictionaryRepresentation] objectForKey: @"iTunesRecentDatabases"];
+
+	if (!iTunesDBURLs)
+		return nil;
+	
+	NSString *libraryURL;
+	NSEnumerator *e = [iTunesDBURLs objectEnumerator];
+	while (libraryURL = [e nextObject])
+	{
+		NSString *libraryPath = [[NSURL URLWithString: libraryURL] path];
+		if ([[NSFileManager defaultManager] fileExistsAtPath: libraryPath])
+			return libraryPath;
+	}
+	
+	return nil;
+}
+
 #pragma mark -
 
 - (void) fetchRequests
@@ -32,8 +54,7 @@
 	NSLog(@"get requests");
 	
 	//	if (! serverTask_) return;
-	NSString *s = @"http://localhost:15800/new-requests/";
-	NSString *result = [NSString stringWithContentsOfURL: [NSURL URLWithString: s]];
+	NSString *result = [self _makeWebRequest: @"new-requests/"];
 	
 	// parse the result and update the array
 	NSXMLDocument *d = [[NSXMLDocument alloc] initWithXMLString:result options:0 error:nil];
@@ -45,9 +66,9 @@
 	NSXMLElement *item;
 	while (item = [itemEnumerator nextObject]) {
 		MBTune *tune = [[MBTune alloc] initWithXML: item];
-		 [self willChangeValueForKey: kRequests];
-		 [requests addObject: tune];
-		 [self didChangeValueForKey: kRequests];
+		[self willChangeValueForKey: kRequests];
+		[requests addObject: tune];
+		[self didChangeValueForKey: kRequests];
 	}
 }
 
@@ -73,6 +94,13 @@
 	
 	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
+
+- (void) reportNowPlaying
+{
+	[self reportCurrentSong];
+	[self reportNextSongs];
+}
+
 
 #pragma mark -
 
@@ -111,8 +139,22 @@
 - (IBAction) startServer: (id) sender
 {
 	NSLog(@"Start Server");
-	serverTask_ = [NSTask launchedTaskWithLaunchPath: PYTHON
-		arguments: [NSArray arrayWithObject: [[NSBundle mainBundle] pathForResource:@"webserver" ofType:@"py"]]];
+	
+	NSString *libraryPath = [self _iTunesLibraryFilePath];
+	NSString *port = [[NSUserDefaults standardUserDefaults] objectForKey: @"networkPort"];
+					  
+	NSLog(@"%@ %@", libraryPath, port);
+	
+	if (!libraryPath || !port)
+		return;
+	
+	serverTask_ = [NSTask 
+		launchedTaskWithLaunchPath: PYTHON
+		arguments: [NSArray arrayWithObjects: 
+			[[NSBundle mainBundle] pathForResource:@"webserver" ofType:@"py"],
+			@"--port", port,
+			@"--library", libraryPath,
+			nil]];
 				
 	[serverTask_ retain];
 }
@@ -153,8 +195,8 @@
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
-		//requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
-		//songQueryTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportCurrentSong) userInfo: nil repeats: YES];
+		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
+		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
 		
 		iTunes_ = [[MBiTunes alloc] init];
 	}
@@ -167,8 +209,8 @@
 	
 	[requestCheckTimer_ invalidate];
 	[requestCheckTimer_ release];
-	[songQueryTimer_ invalidate];
-	[songQueryTimer_ release];
+	[nowPlayingReportTimer_ invalidate];
+	[nowPlayingReportTimer_ release];
 
 	[requests release];
 	[iTunes_ release];
