@@ -89,19 +89,38 @@ newlinestripper = string.maketrans('\n\r\f','   ')
 
 class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 	
-	def sendError(self, text = 'Server error', num = 500):
-		self.send_response(num)
-		self.send_header('Content-type', 'text/plain')
+	def sendError(self, text = 'Server error', httpStatus = 500):
+		self.send_response(httpStatus)
+		self.send_header('Content-type', 'text/plain; charset=us-ascii')
 		self.end_headers()
 		self.wfile.write(text)
 	#enddef sendError()
 	
-	def sendData(self, data, mimeType = 'text/plain', num = 200):
-		self.send_response(num)
-		self.send_header('Content-type', mimeType)
+	def sendXML(self, data, compress = 0, httpStatus = 200):
+	
+		dataUtf = unicode(data).encode('utf-8')
+		
+		self.send_response(httpStatus)
+		if compress:
+			self.send_header('Content-type', 'application/x-gzip')
+			self.end_headers()
+			self.wfile.write(zlib.compress(dataUtf))
+
+		else:
+			self.send_header('Content-type', 'text/xml; charset=utf-8')
+			self.send_header('Charset', 'utf-8')
+			self.end_headers()
+			self.wfile.write(dataUtf)
+			
+	#enddef sendXML()
+	
+	def sendText(self, text, httpStatus = 200):
+		self.send_response(httpStatus)
+		self.send_header('Content-type', 'text/plain; charset=us-ascii')
+		self.send_header('Charset', 'us-ascii')
 		self.end_headers()
-		self.wfile.write(data)
-	#enddef sendData()
+		self.wfile.write(text)
+	#enddef sendText
 	
 	def do_GET(self):
 			
@@ -201,7 +220,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 							'</requestlist>'
 			
 			# send it back
-			self.sendData(packageStr, 'text/xml')
+			self.sendXML(packageStr)
 			
 			# clear the list?
 			if clear == 'yes':
@@ -236,45 +255,45 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				self.sendError('Incomple query parameters: /now-playing?songid=X required')
 				return
 			
-			try:
-				songID = args['songid'][0]
-				
-				thisSong = Library.getSong(songID)
-				if not thisSong:
-					self.sendData('INVALID')
-					return
+			#try:
+			songID = args['songid'][0]
+			
+			thisSong = Library.getSong(songID)
+			if not thisSong:
+				self.sendText('INVALID')
+				return
 
-				# check that it's not already the most recent item in the list:
-				try:
-					if History[-1][1] == songID:
-						self.sendData('DUPLICATE')
-						return
-				except LookupError:
-					pass
+			# check that it's not already the most recent item in the list:
+			try:
+				if History[-1][1] == songID:
+					self.sendText('DUPLICATE')
+					return
+			except LookupError:
+				pass
+			
+			# let's assume that if there is a request for this songID sometime in the last 20 minutes, that
+			# this song was 'fulfilling' that request.
+			twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
+			
+			foundReq = [reqID for (reqID, req) in Requests.items() \
+							if req['songID'] == songID and req['time'] >= twentyMinAgo \
+								and req['status'] != 'played']
+			try:
+				requestID = foundReq[0]
+				Requests[requestID]['status'] = 'played'
+			except LookupError:
+				requestID = None
+			
+			theTime = long(time.time())
+			History.append( (theTime, songID, requestID) )
+			LogSong(theTime, songID, requestID)
+			PlayStats.addSong({'songID': songID, 'artist':thisSong['artist'], 'title':thisSong['title'],
+									'genre':thisSong['genre'], 'time':theTime})
+									
+			self.sendText('OK')
 				
-				# let's assume that if there is a request for this songID sometime in the last 20 minutes, that
-				# this song was 'fulfilling' that request.
-				twentyMinAgo = time.time() - (20 * 60)   # 20 mins = 20 * 60 seconds
-				
-				foundReq = [reqID for (reqID, req) in Requests.items() \
-								if req['songID'] == songID and req['time'] >= twentyMinAgo \
-									and req['status'] != 'played']
-				try:
-					requestID = foundReq[0]
-					Requests[requestID]['status'] = 'played'
-				except LookupError:
-					requestID = None
-				
-				theTime = long(time.time())
-				History.append( (theTime, songID, requestID) )
-				LogSong(theTime, songID, requestID)
-				PlayStats.addSong({'songID': songID, 'artist':thisSong['artist'], 'title':thisSong['title'],
-										'genre':thisSong['genre'], 'time':theTime})
-										
-				self.sendData('OK')
-				
-			except:
-				self.sendData('FAIL')
+			#except:
+			#	self.sendText('FAIL')
 				
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/coming-up'      - LOCALHOST ONLY -
@@ -335,12 +354,12 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				SongQueue = queueList
 				
 				if invalidSongIDs:
-					self.sendData('INVALID\n' + string.join(invalidSongIDs,'\n'))
+					self.sendText('INVALID\n' + string.join(invalidSongIDs,'\n'))
 				else:
-					self.sendData('OK')
+					self.sendText('OK')
 				
 			except:
-				self.sendData('FAIL')
+				self.sendText('FAIL')
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/reload-library'      - LOCALHOST ONLY -
@@ -363,9 +382,9 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			
 			try:
 				LoadLibrary()
-				self.sendData('OK')
+				self.sendText('OK')
 			except:
-				self.sendData('FAIL')
+				self.sendText('FAIL')
 				
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/set-config'      - LOCALHOST ONLY -
@@ -400,7 +419,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			try:
 				for configOpt in args.keys():
 					if not Config.has_key(configOpt):
-						self.sendData('INVALID')
+						self.sendText('INVALID')
 						return
 	
 					val = args[configOpt][0]
@@ -415,10 +434,10 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 					Debug.out("Set config opt:", configOpt,"=",val)
 				#endfor
 				
-				self.sendData('OK')
+				self.sendText('OK')
 				
 			except:
-				self.sendData('FAIL')
+				self.sendText('FAIL')
 				
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/terminate'      - LOCALHOST ONLY -
@@ -511,17 +530,13 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				packageList.append('</stats>')
 				
 			packageList.append('</songinfo>')
-			
-			contentType = 'text/xml'
 			packagedResults = string.join(packageList, '')
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 		
 				
 		#-----------------------------------------------------------------------------------------------------------
@@ -573,6 +588,17 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			searchBy = args['by'][0].lower()
 			searchFor = args['for'][0]
 			
+			# the webserver should send a utf-8 encoded string for the search term.
+			# decode it into a pythong unicode string
+			try:
+				searchFor = searchFor.decode('utf-8')
+			except UnicodeDecodeError:
+				# fallback to latin-1?
+				try:
+					searchFor = searchFor.decode('latin-1','ignore')
+				except:
+					pass
+				
 			if not searchBy in ('letter','artist','title','genre','any'):
 				self.sendError('Unknown search parameter by=' + searchBy)
 				return
@@ -653,21 +679,19 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			# take the appropriate slice:
 			slicedList = sortedSongList[startingFrom:endingAt]
 			
-			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
-								'<songlist count=\"' + str(len(slicedList)) + '\" ' + \
-									'total=\"' + str(len(sortedSongList)) + '\" ' + \
-									'first=\"' + str(startingFrom) + '\" ' + 'last=\"' + str(last) + '\"' + '>\n' + \
-								string.join(map(PackageSong, slicedList), '\n') + \
-								'</songlist>'
-			contentType = 'text/xml'
+			packageList =	['<?xml version="1.0" encoding="UTF-8"?>\n',
+								'<songlist count="', str(len(slicedList)), '" ',
+								'total="', str(len(sortedSongList)), '" ',
+								'first="', str(startingFrom), '" last="', str(last), '">\n']
+			packageList.extend(string.join(map(PackageSong, slicedList), '\n'))
+			packageList.append('</songlist>')
+			packagedResults = string.join(packageList, '')
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -739,19 +763,16 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			slicedRequestList = requestList[0:numResults]
 			
 			# package the requests as XML
-			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<requestlist count=\"' + str(len(slicedRequestList)) + '\">\n' + \
 								string.join(map(PackageRequest, slicedRequestList), '\n') + \
 								'</requestlist>'
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -804,20 +825,17 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			slicedHistoryList = historyList[0:numResults]
 			
 			# package the song list as XML
-			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<historylist count="' + str(len(slicedHistoryList)) + '">\n' + \
 								string.join([PackageHistoryItem(timestamp, songID, reqID) \
 												for (timestamp, songID, reqID) in slicedHistoryList], '\n') + \
 								'</historylist>'
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 		
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/queue'
@@ -848,20 +866,17 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		elif command == '/queue':
 
 			# package the queue list as XML
-			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<queuelist count="' + str(len(SongQueue)) + '">\n' + \
 								string.join([PackageQueueItem(songID, reqID) \
 												for (songID, reqID) in SongQueue], '\n') + \
 								'</queuelist>'
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -938,20 +953,17 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 					entryList.append('<entry><name>' + SafeXML(entry[0]) + '</name>' + \
 									'<count>' + str(entry[1]) + '</count></entry>')
 			
-			contentType = 'text/xml'
 			packagedResults =	'<?xml version="1.0" encoding="UTF-8"?>\n' + \
 								'<toplist count="' + str(len(entryList)) + '" list_type="' + fromThis + '" ' + \
 									'entry_type="' + getThis + '">\n' + \
 								string.join(entryList, '\n') + \
 								'</toplist>'
 			
-			# gzip the results?
+			# send the XML
 			if args.has_key('compress') and args['compress'] and args['compress'][0].lower() == 'gzip':
-				contentType = 'application/x-gzip'
-				packagedResults = zlib.compress(packagedResults)
-			
-			# send it back
-			self.sendData(packagedResults, contentType)
+				self.sendXML(packagedResults, compress=1)
+			else:
+				self.sendXML(packagedResults)
 			
 		#-----------------------------------------------------------------------------------------------------------
 		#  command == '/time'
@@ -961,11 +973,13 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		#	Query string parameters: (none)
 		#
 		#	Returns XML of the form:
-		#			<time>(current local time)</time>
+		#			<timeinfo>
+		#				<time>(timestamp)</time><timestr>(current local time)</timestr>
+		#			</timeinfo>
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/time':
 		
-			self.sendData('<time>' + time.ctime() + '</time>', 'text/xml')
+			self.sendXML('<timeinfo><time>' + str(long(time.time())) + '</time><timestr>' + TimeString(time.time()) + '</timestr></timeinfo>')
 		
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -1005,7 +1019,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 					'<request><application><apptype>MBRadio Server</apptype><version>1.0</version></application>' + \
 					'<status><code>' + str(code) + '</code><message>' + message + '</message></status></request>'
 
-		self.sendData(response, 'text/xml')
+		self.sendXML(response)
 
 	#enddef sendRequestError
 	
@@ -1184,7 +1198,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 						'<status><code>200</code><message>Request Received</message>' + \
 						'<requestID>' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
 			
-			self.sendData(response, 'text/xml')
+			self.sendXML(response)
 		
 		#endif command == '/req'
 			
@@ -1205,14 +1219,14 @@ def PackageSong(songID):
 	if song is None:
 		return ""
 	
-	packageStr = 	'<song id=\"' + str(songID) + '\">' + \
-					'<artist>' + SafeXML(song['artist']) + '</artist>' + \
-					'<title>' + SafeXML(song['title']) + '</title>' + \
-					'<album>' + SafeXML(song['album']) + '</album>' + \
-					'<genre>' + SafeXML(song['genre']) + '</genre>' + \
-					'<duration>' + str(song['duration']) + '</duration></song>'
+	packageList = 	['<song id="', str(songID), '">',
+					'<artist>', SafeXML(song['artist']), '</artist>',
+					'<title>', SafeXML(song['title']), '</title>',
+					'<album>', SafeXML(song['album']), '</album>',
+					'<genre>', SafeXML(song['genre']), '</genre>',
+					'<duration>', str(song['duration']), '</duration></song>']
 
-	return packageStr
+	return string.join(packageList,'')
 	
 #enddef PackageSong
 
@@ -1224,15 +1238,16 @@ def PackageRequest(requestID):
 	
 	reqInfo = Requests[requestID]
 	
-	packageStr = 	'<request id=\"' + str(requestID) + '\">' + \
-					'<time>' + str(reqInfo['time']) + '</time>' + \
-					'<host>' + SafeXML(reqInfo['host']) + '</host>' + \
-					'<requestedby>' + SafeXML(reqInfo['requestedBy']) + '</requestedby>' + \
-					'<dedication>' + SafeXML(reqInfo['dedication']) + '</dedication>' + \
-					'<status>' + reqInfo['status'] + '</status>' + \
-					PackageSong(reqInfo['songID']) + '</request>'
+	packageList =	['<request id="', str(requestID), '">',
+					'<time>', str(reqInfo['time']), '</time>',
+					'<timestr>', TimeString(reqInfo['time']), '</timestr>',
+					'<host>', SafeXML(reqInfo['host']), '</host>',
+					'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
+					'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
+					'<status>', reqInfo['status'], '</status>',
+					PackageSong(reqInfo['songID']), '</request>']
 
-	return packageStr
+	return string.join(packageList,'')
 	
 #enddef PackageRequest
 
@@ -1242,13 +1257,14 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 	if not Library.songExists(songID):
 		return ''
 		
-	packageList = ['<played time=\"', str(timePlayed), '\">', PackageSong(songID)]
+	packageList = ['<played time="', str(timePlayed), '" timestr="', TimeString(timePlayed), '">', PackageSong(songID)]
 					
 	if not requestID is None and requestID in Requests:
 		reqInfo = Requests[requestID]
 		
-		packageList.extend(['<requested id="' + str(requestID) + '">',
+		packageList.extend(['<requested id="', str(requestID), '">',
 							'<time>', str(reqInfo['time']), '</time>',
+							'<timestr>', TimeString(reqInfo['time']), '</timestr>',
 							'<host>', SafeXML(reqInfo['host']), '</host>', 
 							'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
 							'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
@@ -1270,8 +1286,9 @@ def PackageQueueItem(songID, requestID):
 	if not requestID is None and requestID in Requests:
 		reqInfo = Requests[requestID]
 		
-		packageList.extend(['<requested>',
+		packageList.extend(['<requested id="', str(requestID), '">',
 							'<time>', str(reqInfo['time']), '</time>',
+							'<timestr>', TimeString(reqInfo['time']), '</timestr>',
 							'<host>', SafeXML(reqInfo['host']), '</host>',
 							'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
 							'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
@@ -1282,17 +1299,20 @@ def PackageQueueItem(songID, requestID):
 	
 #enddef PackageQueueItem
 
+def TimeString(timeStamp):
+	return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timeStamp))
+#enddef TimeString()
+
 def SafeXML(theString):
-	"""Escape a string for safe XML transmission as UTF-8"""
-	
-	return cgi.escape(theString).encode('ascii', 'xmlcharrefreplace')
-#enddef SafeXML
+	"""Escape a string for safe XML transmission"""
+	return cgi.escape(theString)
+#enddef SafeXML()
 
 def SafeAscii(theString):
 	"""Return a string that only contains ASCII characters"""
 	
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
-#enddef SafeAscii
+#enddef SafeAscii()
 
 def MakeSortingTuple(songID, sortBy):
 	"""	Create an n-tuple used to sort a song list, based on the sorting rules given by the sortBy argument.
@@ -1380,10 +1400,10 @@ def LogSong(timePlayed, songID, requestID):
 	playedXML =	PackageHistoryItem(timePlayed, songID, requestID) + '\n'
 	
 	# try to write to the xml file
-	try:
-		File_InsertAtLine(playedLogFile, playedXML, 3)
-	except:
-		Debug.out("Failed to write song to play history file")
+	#try:
+	File_InsertAtLine(playedLogFile, playedXML, 3)
+	#except:
+	#Debug.out("Failed to write song to play history file")
 
 #enddef LogSong
 
@@ -1393,16 +1413,23 @@ def File_InsertAtLine(fileName, insertThis, atLineNumber):
 	"""
 	
 	import fileinput
-
-	lines = []
-	f = fileinput.FileInput(fileName, inplace=1)
-	for i in range(1, atLineNumber):
-		lines.append(f.readline())
-	lines.append(insertThis)
-	sys.stdout.write(string.join(lines, ''))
 	
+	toInsert = unicode(insertThis).encode('utf-8')
+
+	f = fileinput.FileInput(fileName, inplace=1)
+
+	i = 1
 	for line in f:
 		sys.stdout.write(line)
+		i += 1
+		if i == atLineNumber:
+			sys.stdout.write(toInsert)
+			break
+		
+		
+	for line in f:
+		sys.stdout.write(line)
+		
 	f.close()
 	
 #enddef File_InsertAtLine
@@ -1597,18 +1624,7 @@ def main(argv=None):
 		pass
 	
 	
-	# FIXME
-	# create some dummy data for debugging
-	Requests[1] = {'songID': 'EDE3C749777F9376', 'time': long(time.time()), 'host': '127.0.1', 'status': 'waiting', 
-									'requestedBy': 'Jon', 'dedication': 'Erich' }
-	
-	Requests[2] = {'songID': 'BE3F7187F3FBC986', 'time': long(time.time()), 'host': 'localhost', 'status': 'waiting', 
-									'requestedBy': 'erich', 'dedication': 'Jon' }
-	
-	NewRequests.append(1)
-	NewRequests.append(2)
-	
-	RequestCount = 2
+
 		
 	# start the HTTP server
 	import socket
