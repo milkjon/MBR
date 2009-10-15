@@ -176,7 +176,7 @@ class MusicLibrary:
 		
 		# place song in the "byArtist" dictionary to quick and easy searching later
 		if songArtist != u'[Unknown]':
-			a = SafeAscii(songArtist).lower()
+			a = songArtist.lower()
 			if not self.byArtist.has_key(a):
 				self.byArtist[a] = []
 			self.byArtist[a].append(songID)
@@ -257,16 +257,17 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2SafeAsciiWordList(searchStr)
+			words = searchStr.split()
+			wordList = [ (SafeAscii(word).lower(), word.lower()) for word in words]
 			
 			# find artists where all words match
-			
 			Debug.out("Searching", len(self.byArtist.keys()), "artists")
 			t1 = time.time()
 			
 			matchedSongs = []
 			for artist in self.byArtist.keys():
-				matches = [word for word in wordList if word in artist]
+				asciiArtist = SafeAscii(artist).lower()
+				matches = [word for (asciiWord, word) in wordList if word in artist or asciiWord in asciiArtist]
 				if len(matches) == len(wordList):
 					matchedSongs.extend(self.byArtist[artist])
 			
@@ -324,7 +325,8 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2SafeAsciiWordList(searchStr)
+			words = searchStr.split()
+			wordList = [ (SafeAscii(word).lower(), word.lower()) for word in words]
 			
 			# find titles where all words match
 			
@@ -333,8 +335,9 @@ class MusicLibrary:
 			
 			matchedSongs = []
 			for songID, songData in self.songs.items():
-				songTitle = SafeAscii(songData['title']).lower()
-				matches = [word for word in wordList if word in songTitle]
+				songTitle = songData['title'].lower()
+				asciiSongTitle = SafeAscii(songData['title']).lower()
+				matches = [word for (asciiWord, word) in wordList if word in songTitle or asciiWord in asciiSongTitle]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 			
@@ -359,7 +362,8 @@ class MusicLibrary:
 		#		list	If no results are found, []
 		
 		try:
-			wordList = String2SafeAsciiWordList(searchStr)
+			words = searchStr.split()
+			wordList = [ (SafeAscii(word).lower(), word.lower()) for word in words]
 			
 			# find songs where all words match at least 1 of (artist, title, genre)
 			
@@ -370,22 +374,24 @@ class MusicLibrary:
 			for songID, songData in self.songs.items():
 				
 				# search by artist first
-				songArtist = SafeAscii(songData['artist']).lower()
-				matches = [word for word in wordList if word in songArtist]
+				songArtist = songData['artist'].lower()
+				asciiSongArtist = SafeAscii(songData['artist']).lower()
+				matches = [word for (asciiWord, word) in wordList if word in songArtist or asciiWord in asciiSongArtist]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 				
 				# search by title
-				songTitle = SafeAscii(songData['title']).lower()
-				matches = [word for word in wordList if word in songTitle]
+				songTitle = songData['title'].lower()
+				asciisongTitle = SafeAscii(songData['title']).lower()
+				matches = [word for (asciiWord, word) in wordList if word in songTitle or asciiWord in asciisongTitle]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
 					
 				# search by genre
 				songGenre = SafeAscii(songData['genre']).lower()
-				matches = [word for word in wordList if word in songGenre]
+				matches = [asciiWord for (asciiWord, word) in wordList if asciiWord in songGenre]
 				if len(matches) == len(wordList):
 					matchedSongs.append(songID)
 					continue
