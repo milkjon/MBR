@@ -7,7 +7,7 @@
 #
 #----------------------------------------------------------------------------------------------------------------------#
 
-import string, unicodedata, re, time, xml.parsers.expat
+import string, unicodedata, re, time, xml.parsers.expat, os, os.path
 import Debug
 
 def SafeAscii(theString):
@@ -30,8 +30,48 @@ class Statistics:
 		self.bySongID = {}
 	
 	def loadFromLog(self, logFile):
-		# must be implemented by the subclass
-		pass
+		
+		Debug.out("Loading log " + logFile)
+		
+		try:
+			if os.path.isfile(logFile):
+				statinfo = os.stat(logFile)
+				if statinfo.st_size:
+					f = open(logFile, 'r')
+				else:
+					Debug.out("   Log has zero length")
+					return
+			else:
+				Debug.out("   Log doesn't exist!")
+				return
+		except IOError:
+			Debug.out("   Opening log failed on IOError")
+			return
+		
+		t1 = time.time()
+		
+		p = xml.parsers.expat.ParserCreate()
+		p.StartElementHandler = self.start_element
+		p.EndElementHandler = self.end_element
+		p.CharacterDataHandler = self.char_data
+		p.buffer_text = True
+		
+		try:
+			p.ParseFile(f)
+			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
+		except IOError:
+			Debug.out("   Parsing log failed on IOError")
+			pass
+		except ExpatError:
+			Debug.out("   Parsing log failed on XML ExpatError")
+			pass
+
+		try:
+			f.close()
+		except:
+			pass
+			
+	#enddef loadLog()
 	
 	def addSong(self, songInfo):
 		
@@ -167,23 +207,6 @@ class PlayedStatistics(Statistics):
 	numLoaded = 0
 	playData = {}
 	
-	def loadFromLog(self, logFile):
-		
-		Debug.out("Loading played.xml...")
-
-		t1 = time.time()
-		
-		p = xml.parsers.expat.ParserCreate()
-		p.StartElementHandler = self.start_element
-		p.EndElementHandler = self.end_element
-		p.CharacterDataHandler = self.char_data
-		p.buffer_text = True
-		try:
-			p.ParseFile(file(logFile))
-			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
-		except IOError:
-			pass
-			
 	def start_element(self, name, attrs):	
 		if name == u'played':
 			self.playData.update({'time': attrs['time'], 'songID':'', 'artist':'', 'title':'', 'genre':''})
@@ -223,23 +246,6 @@ class RequestStatistics(Statistics):
 	inSong = 0
 	numLoaded = 0
 	playData = {}
-	
-	def loadFromLog(self, logFile):
-		
-		Debug.out("Loading requests.xml...")
-
-		t1 = time.time()
-		
-		p = xml.parsers.expat.ParserCreate()
-		p.StartElementHandler = self.start_element
-		p.EndElementHandler = self.end_element
-		p.CharacterDataHandler = self.char_data
-		p.buffer_text = True
-		try:
-			p.ParseFile(file(logFile))
-			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
-		except IOError:
-			pass
 
 	def start_element(self, name, attrs):	
 		if name == u'request':
