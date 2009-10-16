@@ -591,8 +591,6 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 					searchFor = searchFor.decode('latin-1','ignore')
 				except:
 					pass
-			print "args=",args
-			print "searchFor=", [searchFor]
 			
 			if not searchBy in ('letter','artist','title','genre','any'):
 				self.sendError('Unknown search parameter by=' + searchBy)
@@ -1099,8 +1097,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			
 				# strip of extra whitespace and any newlines
 				#dedication = StripNewlines(dedication.strip())
-			print "form=",form
-			print "dedication=", [dedication]
+
 			# is it a valid song?
 			requestedSong = Library.getSong(songID)
 			if not requestedSong:
@@ -1175,7 +1172,6 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			# add request to Requests list
 			Requests[requestID] = {'songID': songID, 'time': requestTime, 'host': hostIP, 'status': 'waiting', 
 									'requestedBy': requestedBy, 'dedication': dedication }
-			print Requests[requestID]
 			
 			# add to NewRequests list
 			NewRequests.append(requestID)

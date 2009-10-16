@@ -414,7 +414,6 @@ class MusicLibrary:
 		t1 = time.time()
 		
 		wordList = MakeWordlist(searchStr)
-		print "wordlist=", wordList
 		
 		matchedSongs = []
 		for songID, songData in self.songs.iteritems():
