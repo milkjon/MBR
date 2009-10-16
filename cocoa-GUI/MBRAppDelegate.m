@@ -37,8 +37,7 @@
 	
 	NSString *libraryURL;
 	NSEnumerator *e = [iTunesDBURLs objectEnumerator];
-	while (libraryURL = [e nextObject])
-	{
+	while (libraryURL = [e nextObject]) {
 		NSString *libraryPath = [[NSURL URLWithString: libraryURL] path];
 		if ([[NSFileManager defaultManager] fileExistsAtPath: libraryPath])
 			return libraryPath;
@@ -53,7 +52,7 @@
 {	
 	NSLog(@"get requests");
 	
-	//	if (! serverTask_) return;
+	if (! serverTask_) return;
 	NSString *result = [self _makeWebRequest: @"new-requests/"];
 	
 	// parse the result and update the array
@@ -213,11 +212,10 @@
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
 		playlists = [[NSMutableArray alloc] init];
+		iTunes_ = [[MBiTunes alloc] init];
 		serverTask_ = nil;
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
 		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
-		
-		iTunes_ = [[MBiTunes alloc] init];
 	}
 	return self;
 }
