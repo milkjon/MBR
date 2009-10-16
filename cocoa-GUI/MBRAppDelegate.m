@@ -136,6 +136,16 @@
 	[self fetchRequests];
 }
 
+- (IBAction) updatePlaylists: (id) sender
+{
+	NSLog(@"update Playlists");
+	
+	[self willChangeValueForKey: @"playlists"];
+	[playlists removeAllObjects];
+	[playlists addObjectsFromArray: [iTunes_ playlists]];
+	[self didChangeValueForKey: @"playlists"];
+}
+
 - (IBAction) startServer: (id) sender
 {
 	NSLog(@"Start Server");
@@ -181,9 +191,9 @@
 	NSLog(@"didFinishLaunching");
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
+		
+	[self updatePlaylists: nil];
 	
-	// Get playlists from iTunes
-	// Update Popup - button
 	// Select playlist that is saved to prefs.
 }
 
@@ -201,6 +211,7 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
+		playlists = [[NSMutableArray alloc] init];
 		serverTask_ = nil;
 		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
 		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
@@ -220,6 +231,7 @@
 	[nowPlayingReportTimer_ release];
 
 	[requests release];
+	[playlists release];
 	[iTunes_ release];
 	[super dealloc];
 }

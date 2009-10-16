@@ -10,6 +10,7 @@
 
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *requests;
+	NSMutableArray *playlists;
 	NSTimer *requestCheckTimer_;
 	NSTimer *nowPlayingReportTimer_;
 	
