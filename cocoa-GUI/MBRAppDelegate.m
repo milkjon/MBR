@@ -87,8 +87,9 @@
 - (void) reportNextSongs
 {
 	NSArray *songList = [iTunes_ nextFive];
-	NSMutableString *queryString = [NSMutableString string];
+	if (! songList) return;
 	
+	NSMutableString *queryString = [NSMutableString string];	
 	for (int i = 0;   i < [songList count] && i < 5; i++)
 		[queryString appendString: [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]]];
 	
