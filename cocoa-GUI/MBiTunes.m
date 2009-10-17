@@ -29,7 +29,7 @@
 - (NSArray *) nextFive
 {
 	NSString *upcoming = [self _runAppleScript: nextTracksScript_];
-	if ([upcoming hasPrefix: @"ERROR!!!, "])
+	if ([upcoming hasPrefix: @"ERROR!!!"])
 		return nil;
 
 	NSArray *songList = [upcoming componentsSeparatedByString: @"\r"];
