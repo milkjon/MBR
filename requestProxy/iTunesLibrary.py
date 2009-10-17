@@ -10,11 +10,12 @@
 #	Please set tab-width to 4 characters! Lines should be 120 characters wide.
 #----------------------------------------------------------------------------------------------------------------------#
 
-import xml.parsers.expat
-import time
+import xml.parsers.expat, os, os.path, time
+from xml.parsers.expat import ExpatError
 
 # local imports
 import MusicLibrary
+from MusicLibrary import LibraryError
 import Debug
 
 class ParserData:
@@ -44,15 +45,25 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 	# Load the library from the itunes xml
 	#------------------------------------------------------------------------------------------------------------------#
 	
-	def load(self, path):
+	def load(self, libraryPath):
 		
 		Debug.out("   Parsing iTunes XML...")
 		
-		# reset parse variables
-		self.parser = ParserData()
+		if os.path.isfile(libraryPath):
+			statinfo = os.stat(libraryPath)
+			if not statinfo.st_size:
+				raise LibraryError("iTunes Library zero length")
+		else:
+			raise LibraryError("iTunes Library doesn't exist!")
+		
+		try:
+			f = open(libraryPath, 'r')
+		except IOError as err:
+			raise LibraryError("Opening iTunes Library failed on IOError: " + str(errstr))
 		
 		t1 = time.time()
-		
+		self.parser = ParserData()
+
 		p = xml.parsers.expat.ParserCreate()
 		p.StartElementHandler = self.start_element
 		p.EndElementHandler = self.end_element
@@ -63,12 +74,18 @@ class iTunesLibrary(MusicLibrary.MusicLibrary):
 		# the code implements its own buffering!
 		p.buffer_text = True
 		
-		p.ParseFile(file(path))
+		try:
+			p.ParseFile(f)
+			t2 = time.time()
 		
-		t2 = time.time()
-		
-		Debug.out("   Loaded", len(self.songs), "songs!")
-		Debug.out("   Parsing took", round(t2 - t1,4), "seconds")
+			Debug.out("   Loaded", len(self.songs), "songs!")
+			Debug.out("   Parsing took", round(t2 - t1,4), "seconds")
+		except IOError as err:
+			raise LibraryError("Parsing iTunes Library failed on IOError: " + str(IOError))
+		except ExpatError as err:
+			raise LibraryError("Parsing iTunes Library failed on XML ExpatError: " + str(err))
+		finally:
+			f.close()
 
 	#enddef load()
 	

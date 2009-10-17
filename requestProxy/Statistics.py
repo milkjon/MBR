@@ -7,12 +7,18 @@
 #
 #----------------------------------------------------------------------------------------------------------------------#
 
-import string, unicodedata, re, time, xml.parsers.expat, os, os.path
+import string, unicodedata, time, os, os.path
+import xml.parsers.expat
+from xml.parsers.expat import ExpatError
 import Debug
 
-def SafeAscii(theString):
+def NiceAscii(theString):
+	"""	Transform a unicode string into an 8-bit ascii string, in a nice way.
+		Makes use of the unicodedata.normalize() function to try to transform non-ascii characters into the closest
+		ascii match. (simply calling .encode('ascii') results in not-very-nice results :P )
+	"""
 	return unicodedata.normalize('NFKD', unicode(theString)).encode('ascii','ignore')
-#enddef SafeAscii()
+#enddef NiceAscii()
 
 def TitleCase(s):
         return re.sub(r"[A-Za-z]+('[A-Za-z]+)?",
@@ -20,6 +26,9 @@ def TitleCase(s):
                                  mo.group(0)[1:].lower(),
                       s)
 #enddef TitleCase()
+
+class LogError(Exception):
+	pass
 
 class Statistics:
 	
@@ -33,21 +42,18 @@ class Statistics:
 		
 		Debug.out("Loading log " + logFile)
 		
-		try:
-			if os.path.isfile(logFile):
-				statinfo = os.stat(logFile)
-				if statinfo.st_size:
-					f = open(logFile, 'r')
-				else:
-					Debug.out("   Log has zero length")
-					return
-			else:
-				Debug.out("   Log doesn't exist!")
-				return
-		except IOError:
-			Debug.out("   Opening log failed on IOError")
-			return
+		if os.path.isfile(logFile):
+			statinfo = os.stat(logFile)
+			if not statinfo.st_size:
+				raise LogError("Log has zero length")
+		else:
+			raise LogError("Log doesn't exist!")
 		
+		try:
+			f = open(logFile, 'r')
+		except IOError as err:
+			raise LogError("Parsing log failed on IOError: " + str(errstr))
+				
 		t1 = time.time()
 		
 		p = xml.parsers.expat.ParserCreate()
@@ -55,29 +61,24 @@ class Statistics:
 		p.EndElementHandler = self.end_element
 		p.CharacterDataHandler = self.char_data
 		p.buffer_text = True
-		
+			
 		try:
 			p.ParseFile(f)
 			Debug.out("   Loaded", self.numLoaded, "rows in", round(time.time() - t1,5), "seconds")
-		except IOError:
-			Debug.out("   Parsing log failed on IOError")
-			pass
-		except ExpatError:
-			Debug.out("   Parsing log failed on XML ExpatError")
-			pass
-
-		try:
+		except IOError as err:
+			raise LogError("Parsing log failed on IOError: " + str(IOError))
+		except ExpatError as err:
+			raise LogError("Parsing log failed on XML ExpatError: " + str(err))
+		finally:
 			f.close()
-		except:
-			pass
 			
 	#enddef loadLog()
 	
 	def addSong(self, songInfo):
 		
-		songTitle = SafeAscii(songInfo['title'].strip()).lower()
-		songArtist = SafeAscii(songInfo['artist'].strip()).lower()
-		songGenre = SafeAscii(songInfo['genre'].strip()).lower()
+		songTitle = NiceAscii(songInfo['title'].strip()).lower()
+		songArtist = NiceAscii(songInfo['artist'].strip()).lower()
+		songGenre = NiceAscii(songInfo['genre'].strip()).lower()
 		songID = songInfo['songID']
 		timestamp = long(songInfo['time'])
 		

@@ -49,11 +49,14 @@ def StripLeadingNonAlnum(theString):
 #enddef StripLeadingNonAlnum()
 
 def MakeWordlist(theString):
-	"""	Turn a string in a list of 2-tuples (lowercase-ascii-word, lowercase-unicode-word) for each "word" in the string,
-		where a word is defined by the presence of whitespae as defined by string.split()
+	"""	Turn a string in a list of 2-tuples (lowercase-ascii-word, lowercase-unicode-word) for each "word" in the
+		string, where a word is defined by the presence of whitespae as defined by string.split()
 	"""
 	return [ (NiceAscii(word).lower(), word.lower()) for word in theString.split() ]
 #enddef MakeWordlist()
+
+class LibraryError(Exception):
+	pass
 
 class MusicLibrary:
 	
@@ -79,7 +82,7 @@ class MusicLibrary:
 		
 		# byGenre dictionary
 		#	Holds lists of songIDs organized by song genre (for fast searching)
-		#	Format:		keys:	 <genre-name>  (as ascii-string)
+		#	Format:		keys:	 <genre-name>  (as unicode-string)
 		#				values:	 list[(songID1), (songID2),...]
 		self.byGenre = {}
 		
@@ -88,6 +91,12 @@ class MusicLibrary:
 		#	Format:		keys:	 <artist-name>  (as unicode-string)
 		#				values:	 list[(songID1), (songID2),...]
 		self.byArtist = {}
+		
+		# byAlbum dictionary
+		#	Holds lists of songIDs organized by song artist (for fast searching)
+		#	Format:		keys:	 <album-name>  (as unicode-string)
+		#				values:	 list[(songID1), (songID2),...]
+		self.byAlbum = {}
 		
 		asciiLetters = string.ascii_lowercase
 		for c in asciiLetters:
@@ -107,6 +116,7 @@ class MusicLibrary:
 		self.songs.clear()
 		self.byGenre.clear()
 		self.byArtist.clear()
+		self.byAlbum.clear()
 		for letter in self.byLetter.keys():
 			del self.byLetter[letter]
 			self.byLetter[letter] = []
@@ -138,25 +148,27 @@ class MusicLibrary:
 		songGenre = songData['genre'].strip()
 		songAlbum = songData['album'].strip()
 
-		songDuration = 0
 		try:
 			songDuration = long(songData['duration'].strip())
 		except ValueError:
-			pass
+			songDuration = 0
 		
 		songSortTitle = ''
 		if songData['sortTitle']:
 			songSortTitle = songData['sortTitle'].strip()
 		if not songSortTitle:
 			songSortTitle = songTitle
-		songSortTitle = NiceAscii(songSortTitle).lower()
 		
 		songSortArtist = ''
 		if songData['sortArtist']:
 			songSortArtist = songData['sortArtist'].strip()
 		if not songSortArtist:
 			songSortArtist = songArtist
+			
+		songSortTitle = NiceAscii(songSortTitle).lower()
 		songSortArtist = NiceAscii(songSortArtist).lower()
+		songSortGenre = NiceAscii(songGenre).lower()
+		songSortAlbum = NiceAscii(songAlbum).lower()
 		
 		# place song in the "byLetter" dictionary for quick and easy searching later
 		if songSortArtist:
@@ -172,12 +184,19 @@ class MusicLibrary:
 		songTitleLower = songTitle.lower()
 		songArtistLower = songArtist.lower()
 		songGenreLower = songGenre.lower()
+		songAlbumLower = songAlbum.lower()
 		
 		# place song in the "byArtist" dictionary to quick and easy searching later
 		if songArtistLower:
 			if not songArtistLower in self.byArtist:
 				self.byArtist[songArtistLower] = []
 			self.byArtist[songArtistLower].append(songID)
+		
+		# place song in the "byAlbum" dictionary to quick and easy searching later
+		if songAlbumLower:
+			if not songAlbumLower in self.byAlbum:
+				self.byAlbum[songAlbumLower] = []
+			self.byAlbum[songAlbumLower].append(songID)
 		
 		# place song in the "byGenre" dictionary for quick and easy searching later
 		if songGenreLower:
@@ -192,12 +211,15 @@ class MusicLibrary:
 			songTitle = u'[Unknown]'
 		
 		self.songs[songID] = \
-			{	'title': songTitle, 'sortTitle': StripLeadingNonAlnum(songSortTitle), 
-					'searchTitle': songTitleLower, 'searchTitleAscii': NiceAscii(songTitleLower).lower(),
-				'artist': songArtist, 'sortArtist': StripLeadingNonAlnum(songSortArtist), 
-					'searchArtist': songArtistLower, 'searchArtistAscii': NiceAscii(songArtistLower).lower(),
-				'genre': songGenre, 'searchGenre': songGenreLower, 'searchGenreAscii': NiceAscii(songGenreLower).lower(), 
-				'album': songAlbum, 'duration': songDuration
+			{'title': songTitle, 'title-sort': StripLeadingNonAlnum(songSortTitle), 
+				'title-search': songTitleLower, 'title-searchAscii': NiceAscii(songTitleLower).lower(),
+			'artist': songArtist, 'artist-sort': StripLeadingNonAlnum(songSortArtist), 
+				'artist-search': songArtistLower, 'artist-searchAscii': NiceAscii(songArtistLower).lower(),
+			'genre': songGenre, 'genre-sort': StripLeadingNonAlnum(songSortGenre), 
+				'genre-search': songGenreLower, 'genre-searchAscii': NiceAscii(songGenreLower).lower(), 
+			'album': songAlbum, 'album-sort': StripLeadingNonAlnum(songSortAlbum), 
+				'album-search': songAlbumLower, 'album-searchAscii': NiceAscii(songAlbumLower).lower(), 
+			'duration': songDuration
 			}
 			
 	#enddef addSong()
@@ -215,21 +237,14 @@ class MusicLibrary:
 		sortList=[]
 		for field, dir in sortBy:
 			try:
-				if field == 'artist':
-					fieldVal = song['sortArtist']
-				elif field == 'title':
-					fieldVal = song['sortTitle']
-				else:
-					fieldVal = StripLeadingNonAlnum(NiceAscii(song[field]).lower())
-			except LookupError:
-				sortList.append(chr(128))
-			else:
+				fieldVal = song[field + '-sort']
 				if not fieldVal or fieldVal == u'[Unknown]':
 					sortList.append(chr(128))
 				else:
 					sortList.append(fieldVal)
-		#end for
-				
+			except LookupError:
+				sortList.append(chr(128))
+
 		sortList.append(songID)
 		return tuple(sortList)
 
@@ -316,8 +331,9 @@ class MusicLibrary:
 	
 	def searchBy_Artist(self, searchStr):
 		"""	Search the library by Artist Name where searchStr matches the artist name.
-			NB: If searchStr consists of multiple words then ALL words must be found within the artist name to make a match.
-			
+			NB:	If searchStr consists of multiple words then ALL words must be found within the artist name to make a
+				match.
+			 
 			arguments:
 				searchStr	as  string	"word1 word2..."
 			returns:
@@ -342,9 +358,39 @@ class MusicLibrary:
 			
 	#enddef searchBy_Artist()
 	
+	def searchBy_Album(self, searchStr):
+		"""	Search the library by Album Name where searchStr matches the artist name.
+			NB:	If searchStr consists of multiple words then ALL words must be found within the artist name to make a
+				match.
+			 
+			arguments:
+				searchStr	as  string	"word1 word2..."
+			returns:
+				list	[songID1, songID2, ...] of songIDs that match the search criteria
+		"""
+		
+		Debug.out("Searching", len(self.byAlbum), "albums")
+		t1 = time.time()
+		
+		wordList = MakeWordlist(searchStr)
+		
+		matchedSongs = []
+		for album in self.byAlbums:
+			asciiAlbum = NiceAscii(album)
+			matches = [1 for (asciiWord, word) in wordList if asciiWord in asciiAlbum or word in album]
+			if len(matches) == len(wordList):
+				matchedSongs.extend(self.byArtist[album])
+		
+		Debug.out("  Found", len(matchedSongs), "songs in", round(time.time()-t1,6), "seconds")
+
+		return matchedSongs
+			
+	#enddef searchBy_Artist()
+	
 	def searchBy_Genre(self, searchStr):
 		"""	Search the library by Genre Name where searchStr matches the genre name.
-			NB: If searchStr consists of multiple words then ALL words must be found within the genre name to make a match.
+			NB: If searchStr consists of multiple words then ALL words must be found within the genre name to make a
+				match.
 			
 			arguments:
 				searchStr	as  string	"word1 word2..."
@@ -387,8 +433,8 @@ class MusicLibrary:
 		
 		matchedSongs = []
 		for songID, songData in self.songs.iteritems():
-			songTitle = songData['searchTitle']
-			asciiSongTitle = songData['searchTitleAscii']
+			songTitle = songData['title-search']
+			asciiSongTitle = songData['title-searchAscii']
 			matches = [1 for (asciiWord, word) in wordList if asciiWord in asciiSongTitle or word in songTitle]
 			if len(matches) == len(wordList):
 				matchedSongs.append(songID)
@@ -402,7 +448,7 @@ class MusicLibrary:
 	def searchBy_Any(self, searchStr):
 		"""	Search the library where searchStr matches any of (title|artist|genre)
 			NB:	If searchStr consists of multiple words then ALL words must be found within at least ONE of the
-				fields (title|artist|genre) to make a match.
+				fields (title|artist|album|genre) to make a match.
 			
 			arguments:
 				searchStr	as  string	"word1 word2..."
@@ -410,35 +456,55 @@ class MusicLibrary:
 				list	[songID1, songID2, ...] of songIDs that match the search criteria
 		"""
 
-		Debug.out("Searching", len(self.songs), "songs (artist, title, genre)")
+		Debug.out("Searching", len(self.songs), "songs (artist, title, album, genre)")
 		t1 = time.time()
 		
 		wordList = MakeWordlist(searchStr)
-		
+	
 		matchedSongs = []
 		for songID, songData in self.songs.iteritems():
 			
 			# search by artist first
-			songArtist = songData['searchArtist']
-			asciiSongArtist = songData['searchArtistAscii']
-			matches = [1 for (asciiWord, word) in wordList if asciiWord in asciiSongArtist or word in songArtist]
-			if len(matches) == len(wordList):
+			songArtist = songData['artist-search']
+			asciiSongArtist = songData['artist-searchAscii']
+			i = 0
+			for (asciiWord, word) in wordList:
+				if asciiWord in asciiSongArtist or word in songArtist:
+					i += 1
+			if i == len(wordList):
 				matchedSongs.append(songID)
 				continue
-			
+
 			# search by title
-			songTitle = songData['searchTitle']
-			asciisongTitle = songData['searchTitleAscii']
-			matches = [1 for (asciiWord, word) in wordList if asciiWord in asciisongTitle or word in songTitle]
-			if len(matches) == len(wordList):
+			songTitle = songData['title-search']
+			asciiSongTitle = songData['title-searchAscii']
+			i = 0
+			for (asciiWord, word) in wordList:
+				if asciiWord in asciiSongTitle or word in  songTitle:
+					i += 1
+			if i == len(wordList):
+				matchedSongs.append(songID)
+				continue
+				
+			# search by album
+			songAlbum = songData['album-search']
+			asciiSongAlbum = songData['album-searchAscii']
+			i = 0
+			for (asciiWord, word) in wordList:
+				if asciiWord in asciiSongAlbum or word in  songAlbum:
+					i += 1
+			if i == len(wordList):
 				matchedSongs.append(songID)
 				continue
 				
 			# search by genre
-			songGenre = songData['searchGenre']
-			songGenreAscii = songData['searchGenreAscii']
-			matches = [1 for (asciiWord, word) in wordList if asciiWord in songGenreAscii or word in songGenre]
-			if len(matches) == len(wordList):
+			songGenre = songData['genre-search']
+			songGenreAscii = songData['genre-searchAscii']
+			i = 0
+			for (asciiWord, word) in wordList:
+				if asciiWord in songGenreAscii or word in  songGenre:
+					i += 1
+			if i == len(wordList):
 				matchedSongs.append(songID)
 				continue
 		#endfor

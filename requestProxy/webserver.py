@@ -15,6 +15,8 @@ import BaseHTTPServer
 
 # local imports
 import iTunesLibrary, Statistics, Debug
+from MusicLibrary import LibraryError
+from Statistics import LogError
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Globals
@@ -64,28 +66,10 @@ History = []
 #		list[ (songID1, requestID1), (songID2, requestID2), ... ]
 SongQueue = []
 
-#----------------------------------------------------------------------------------------------------------------------#
-#  Load music library
-#----------------------------------------------------------------------------------------------------------------------#
-def LoadLibrary():
-	global Library
-	
-	Debug.out('Loading song database...')
-
-	if Library:
-		Library.reset()
-		
-	if Config['Library'] == "iTunes":
-		Library = iTunesLibrary.iTunesLibrary()
-		Library.load(Config['iTunesDB'])
-	
-#enddef LoadLibrary
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  BaseHTTPServer implementation
 #----------------------------------------------------------------------------------------------------------------------#
-
-newlinestripper = string.maketrans(u'\n\r\f',u'   ')
 
 def StripNewlines(theString):
 	return theString.replace('\n','').replace('\r','').replace('\f','')
@@ -103,7 +87,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 	def sendXML(self, data, compress = 0, httpStatus = 200):
 	
 		data = '<?xml version="1.0" encoding="UTF-8"?>\n' + data
-		dataUtf = unicode(data).encode('utf-8')
+		dataUtf = data.encode('utf-8')
 		
 		self.send_response(httpStatus)
 		if compress:
@@ -217,9 +201,9 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				orderedRequests.reverse()
 
 			# package new requests as XML
-			xmlList =	['<requestlist count="', unicode(len(orderedRequests)), '">\n',
-							'\n'.join(map(PackageRequest, orderedRequests)), '</requestlist>']
-			xmlString = u''.join(xmlList)
+			xmlList =	['<requestlist count="', str(len(orderedRequests)), '">\n',
+							'\n'.join(map(PackageXML_Request, orderedRequests)), '</requestlist>\n']
+			xmlString = ''.join(xmlList)
 			
 			# send it back
 			self.sendXML(xmlString)
@@ -496,7 +480,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				includeStats = args['stats'][0]
 			
 			# package the information
-			xmlList =	['<songinfo>', PackageSong(songID)]
+			xmlList =	['<songinfo>', PackageXML_Song(songID)]
 			
 			if includeStats == 'yes':
 				xmlList.append('<stats>')
@@ -524,8 +508,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 					
 				xmlList.append('</stats>')
 				
-			xmlList.append('</songinfo>')
-			xmlString = u''.join(xmlList)
+			xmlList.append('</songinfo>\n')
+			xmlString = ''.join(xmlList)
 			
 			# send the XML
 			self.sendXML(xmlString, compress=compressXML)
@@ -604,7 +588,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				numResults = 100
 				
 			try:
-				startingFrom = int(args['starting'][0])
+				startingFrom = long(args['starting'][0])
 				if startingFrom < 0:
 					startingFrom = 0
 			except (LookupError, ValueError):
@@ -634,7 +618,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			
 			# Execute the search on the music Library!
 			matchedSongs = None
-			#try:
+
 			if searchBy == "letter":
 				matchedSongs = Library.searchBy_Letter(searchFor)
 			elif searchBy == "artist":
@@ -645,9 +629,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 				matchedSongs = Library.searchBy_Title(searchFor)
 			elif searchBy == "any":
 				matchedSongs = Library.searchBy_Any(searchFor)
-			#except:
-			#	pass
-			
+
 			if matchedSongs is None:
 				self.sendError('Search error occurred')
 				return
@@ -671,11 +653,10 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			slicedList = sortedSongs[startingFrom:endingAt]
 			
 			xmlList =	['<songlist count="', str(len(slicedList)), '" ', 'total="', str(len(sortedSongs)), '" ',
-							'first="', str(startingFrom), '" last="', str(last), '">\n']
-			xmlList.append('\n'.join(map(PackageSong, slicedList)))
-			xmlList.append('</songlist>')
-			xmlString = u''.join(xmlList)
-			
+							'first="', str(startingFrom), '" last="', str(last), '">\n',
+							'\n'.join(map(PackageXML_Song, slicedList)), '</songlist>\n']
+			xmlString = ''.join(xmlList)
+
 			Debug.out("  Search took", round(time.time()-t1,6), "seconds total")
 			
 			# send the XML
@@ -752,8 +733,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			
 			# package the requests as XML
 			xmlList =	['<requestlist count="', str(len(slicedRequestList)), '">\n',
-							'\n'.join(map(PackageRequest, slicedRequestList)), '</requestlist>']
-			xmlString = u''.join(xmlList)
+							'\n'.join(map(PackageXML_Request, slicedRequestList)), '</requestlist>\n']
+			xmlString = ''.join(xmlList)
 			
 			# send the XML
 			self.sendXML(xmlString, compress=compressXML)
@@ -809,9 +790,9 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			
 			# package the song list as XML
 			xmlList =	['<historylist count="', str(len(slicedHistoryList)), '">\n',
-							'\n'.join([PackageHistoryItem(timestamp, songID, reqID)
-									for (timestamp, songID, reqID) in slicedHistoryList]), '</historylist>']
-			xmlString = u''.join(xmlList)
+							'\n'.join([PackageXML_HistoryItem(timestamp, songID, reqID)
+									for (timestamp, songID, reqID) in slicedHistoryList]), '</historylist>\n']
+			xmlString = ''.join(xmlList)
 			
 			# send the XML
 			self.sendXML(xmlString, compress=compressXML)
@@ -846,9 +827,9 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 
 			# package the queue list as XML
 			xmlList =	['<queuelist count="', str(len(SongQueue)), '">\n',
-							'\n'.join([PackageQueueItem(songID, reqID) for (songID, reqID) in SongQueue]),
-							'</queuelist>']
-			xmlString = u''.join(xmlList)
+							'\n'.join([PackageXML_QueueItem(songID, reqID) for (songID, reqID) in SongQueue]),
+							'</queuelist>\n']
+			xmlString = ''.join(xmlList)
 			
 			# send the XML
 			self.sendXML(xmlString, compress=compressXML)
@@ -928,8 +909,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 													'<count>', str(entry[1]), '</count></entry>']))
 			
 			xmlList =	['<toplist count="', str(len(entryList)), '" list_type="', fromThis, '" ', 
-							'entry_type="', getThis, '">\n', '\n'.join(entryList), '</toplist>']
-			xmlString = u''.join(xmlList)
+							'entry_type="', getThis, '">\n', '\n'.join(entryList), '</toplist>\n']
+			xmlString = ''.join(xmlList)
 			
 			# send the XML
 			self.sendXML(xmlString, compress=compressXML)
@@ -948,7 +929,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		#-----------------------------------------------------------------------------------------------------------
 		elif command == '/time':
 		
-			self.sendXML('<timeinfo><time>' + str(long(time.time())) + '</time><timestr>' + TimeString(time.time()) + '</timestr></timeinfo>')
+			self.sendXML('<timeinfo><time>' + str(long(time.time())) + '</time><timestr>' + \
+							TimeString(time.time()) + '</timestr></timeinfo>\n')
 		
 		
 		#-----------------------------------------------------------------------------------------------------------
@@ -965,11 +947,14 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 	def sendRequestError(self, code):
 
 		if code == 601:
-			message = 'Request limit reached: the same song can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+			message = 'Request limit reached: the same song can only be requested ' + \
+						str(Config['maxRequests_Song']) + ' times every 60 minutes'
 		elif code == 602:
-			message = 'Request limit reached: the same artist can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+			message = 'Request limit reached: the same artist can only be requested ' + \
+						str(Config['maxRequests_Song']) + ' times every 60 minutes'
 		elif code == 604:
-			message = 'Request limit reached: the same album can only be requested ' + str(Config['maxRequests_Song']) + ' times every 60 minutes'
+			message = 'Request limit reached: the same album can only be requested ' + \
+						str(Config['maxRequests_Song']) + ' times every 60 minutes'
 		elif code == 700:
 			message = "Invalid request (Unknown error)"
 		elif code == 701:
@@ -977,7 +962,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		elif code == 703:
 			message = "Requested song ID invalid"
 		elif code == 704:
-			message = 'Request limit reached: you can only request ' + str(Config['maxRequests_User']) + ' songs every 60 minutes'
+			message = 'Request limit reached: you can only request ' + \
+						str(Config['maxRequests_User']) + ' songs every 60 minutes'
 		elif code == 708:
 			message = 'You have already requested this song'
 		else:
@@ -985,7 +971,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			code = 700
 			
 		response =	'<request><application><apptype>MBRadio Server</apptype><version>1.0</version></application>' + \
-					'<status><code>' + str(code) + '</code><message>' + message + '</message></status></request>'
+					'<status><code>' + str(code) + '</code><message>' + message + '</message></status></request>\n'
 
 		self.sendXML(response)
 
@@ -1069,7 +1055,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			requestedBy = ''
 			if 'requestedBy' in form and form['requestedBy']:
 				requestedBy = form['requestedBy'][0]
-				# the webserver should send requestedBy as a utf-8 encoded string; decode it into a python unicode string
+				# the webserver should send requestedBy as a utf-8 encoded string; decode it into a unicode string
 				try:
 					requestedBy = requestedBy.decode('utf-8').encode('raw_unicode_escape').decode('utf-8')
 				except UnicodeDecodeError:
@@ -1085,7 +1071,7 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			dedication = ''
 			if 'dedication' in form and form['dedication']:
 				dedication = form['dedication'][0]
-				# the webserver should send dedication as a utf-8 encoded string; decode it into a python unicode string
+				# the webserver should send dedication as a utf-8 encoded string; decode it into a unicode string
 				try:
 					dedication = dedication.decode('utf-8').encode('raw_unicode_escape').decode('utf-8')
 				except UnicodeDecodeError:
@@ -1184,7 +1170,8 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 			# send a response back in XML
 			response = 	'<request><application><apptype>MBRadio</apptype><version>1.0</version></application>' + \
 						'<status><code>200</code><message>Request Received</message>' + \
-						'<requestID>' + str(requestID) + '</requestID></status>' + PackageSong(songID) + '</request>'
+						'<requestID>' + str(requestID) + '</requestID></status>' + \
+						PackageXML_Song(songID) + '</request>\n'
 
 			self.sendXML(response)
 		
@@ -1193,14 +1180,14 @@ class MBRadio(BaseHTTPServer.BaseHTTPRequestHandler):
 		#except :
 		#	self.sendError('Unknown server error')
 			
-	#enddef do_POST
+	#enddef do_POST()
 
 #endclass MBRadio(BaseHTTPServer.BaseHTTPRequestHandler)
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Utility functions
 #----------------------------------------------------------------------------------------------------------------------#
-def PackageSong(songID):
+def PackageXML_Song(songID):
 	"""Packages the song info as an XML string"""
 	
 	song = Library.getSong(songID)
@@ -1214,11 +1201,11 @@ def PackageSong(songID):
 					'<genre>', SafeXML(song['genre']), '</genre>',
 					'<duration>', str(song['duration']), '</duration></song>']
 
-	return u''.join(xmlList)
+	return ''.join(xmlList)
 	
-#enddef PackageSong
+#enddef PackageXML_Song()
 
-def PackageRequest(requestID):
+def PackageXML_Request(requestID):
 	"""Packages the request info as an XML string"""
 	
 	try:
@@ -1233,19 +1220,19 @@ def PackageRequest(requestID):
 					'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
 					'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
 					'<status>', reqInfo['status'], '</status>',
-					PackageSong(reqInfo['songID']), '</request>']
+					PackageXML_Song(reqInfo['songID']), '</request>']
 
-	return u''.join(xmlList)
+	return ''.join(xmlList)
 	
-#enddef PackageRequest
+#enddef PackageXML_Request()
 
-def PackageHistoryItem(timePlayed, songID, requestID):
+def PackageXML_HistoryItem(timePlayed, songID, requestID):
 	"""Packages a history item as an XML string"""
 	
 	if not Library.songExists(songID):
 		return ''
 		
-	xmlList = ['<played time="', str(timePlayed), '" timestr="', TimeString(timePlayed), '">', PackageSong(songID)]
+	xmlList = ['<played time="', str(timePlayed), '" timestr="', TimeString(timePlayed), '">', PackageXML_Song(songID)]
 					
 	if requestID:
 		try:
@@ -1262,17 +1249,17 @@ def PackageHistoryItem(timePlayed, songID, requestID):
 			pass
 			
 	xmlList.append('</played>')
-	return u''.join(xmlList)
+	return ''.join(xmlList)
 	
-#enddef PackageHistoryItem
+#enddef PackageXML_HistoryItem()
 
-def PackageQueueItem(songID, requestID):
+def PackageXML_QueueItem(songID, requestID):
 	"""Packages a queue item as an XML string"""
 	
 	if not Library.songExists(songID):
 		return ''
 		
-	xmlList = 	['<queued>', PackageSong(songID)]
+	xmlList = 	['<queued>', PackageXML_Song(songID)]
 					
 	if requestID:
 		try:
@@ -1289,11 +1276,12 @@ def PackageQueueItem(songID, requestID):
 			pass
 		
 	xmlList.append('</queued>')
-	return u''.join(xmlList)
+	return ''.join(xmlList)
 	
-#enddef PackageQueueItem
+#enddef PackageXML_QueueItem()
 
 def TimeString(timeStamp):
+	"""Return a timestamp formatted as a string 'YYYY-MM-DD HH:MM:SS' """
 	return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timeStamp))
 #enddef TimeString()
 
@@ -1327,8 +1315,8 @@ def LogRequest(requestID):
 					'<host>', SafeXML(reqInfo['host']), '</host>',
 					'<requestedby>', SafeXML(reqInfo['requestedBy']), '</requestedby>',
 					'<dedication>', SafeXML(reqInfo['dedication']), '</dedication>',
-					PackageSong(reqInfo['songID']), '</request>\n']
-	xmlString = u''.join(xmlList)
+					PackageXML_Song(reqInfo['songID']), '</request>']
+	xmlString = ''.join(xmlList)
 	
 	# try to write to the xml file
 	try:
@@ -1355,7 +1343,7 @@ def LogSong(timePlayed, songID, requestID):
 		return
 		
 	# make the log entry as XML
-	playedXML =	PackageHistoryItem(timePlayed, songID, requestID) + '\n'
+	playedXML =	PackageXML_HistoryItem(timePlayed, songID, requestID)
 	
 	# try to write to the xml file
 	try:
@@ -1366,13 +1354,11 @@ def LogSong(timePlayed, songID, requestID):
 #enddef LogSong()
 
 def File_InsertAtLine(fileName, insertThis, atLineNumber):
-	"""	Inserts the string (insertThis) at line number (atLineNumber) in the file specified by (fileName)
-		Note: (insertThis) must have a trailing '\n' to insert a new line!
-	"""
+	"""	Inserts the string (insertThis) at line number (atLineNumber) in the file specified by (fileName) """
 	
 	import fileinput
 	
-	toInsert = unicode(insertThis).encode('utf-8')
+	toInsert = insertThis.encode('utf-8')
 
 	f = fileinput.FileInput(fileName, inplace=1)
 
@@ -1381,7 +1367,7 @@ def File_InsertAtLine(fileName, insertThis, atLineNumber):
 		sys.stdout.write(line)
 		i += 1
 		if i == atLineNumber:
-			sys.stdout.write(toInsert)
+			sys.stdout.write(toInsert + '\n')
 			break
 		
 	for line in f:
@@ -1408,6 +1394,25 @@ def File_CheckOrMakeDefault(fileName, defaultContent):
 		f.close()
 	
 #enddef File_CheckOrMakeDefault()
+
+
+#----------------------------------------------------------------------------------------------------------------------#
+#  Load music library
+#----------------------------------------------------------------------------------------------------------------------#
+def LoadLibrary():
+	global Library
+	
+	Debug.out('Loading song database...')
+
+	if Library:
+		Library.reset()
+	
+	if Config['Library'] == "iTunes":
+		Library = iTunesLibrary.iTunesLibrary()
+		Library.load(Config['iTunesDB'])
+	
+#enddef LoadLibrary
+
 
 #----------------------------------------------------------------------------------------------------------------------#
 #  Load configuration
@@ -1554,41 +1559,42 @@ def main(argv=None):
 			Config['LogDir'] = settings.logdir
 			
 	except:
-		sys.stderr.write('Failed to parse commandline')
+		sys.stderr.write('Failed to parse commandline\n')
 		sys.exit(2)
 
 	# load configuation:
 	try:
 		LoadConfig()
 	except ConfigError:
-		sys.stderr.write('Failed to load configuration')
+		sys.stderr.write('Failed to load configuration\n')
 		sys.exit(1)
 	
 	# load music library
-	#try:
-	LoadLibrary()
-	#except:
-	#	sys.stderr.write('Failed to load music library')
-	#	sys.exit(1)
+	try:
+		LoadLibrary()
+	except LibraryError as (errstr,):
+		sys.stderr.write('Failed to load music library:\n')
+		sys.stderr.write('   ERR: ' + errstr + '\n')
+		sys.exit(1)
 	
 	# load history from the logs
 	try:
 		PlayStats.loadFromLog(os.path.join(Config['LogDir'], "played.xml"))
-	except:
-		pass
+	except LogError as (errstr,):
+		Debug.out("   ERR: " + errstr)
 	try:
 		RequestStats.loadFromLog(os.path.join(Config['LogDir'], "requests.xml"))
-	except:
-		pass
+	except LogError as (errstr,):
+		Debug.out("   ERR: " + errstr)
 		
 	# start the HTTP server
 	try:
 		server = BaseHTTPServer.HTTPServer(('', Config['Port']), MBRadio)
 	except socket.error as (errno, strerror):
-		sys.stderr.write('Failed to create HTTP Server: ' + strerror)
+		sys.stderr.write('Failed to create HTTP Server: ' + strerror + '\n')
 		sys.exit(1)
 	except:
-		sys.stderr.write('Failed to create HTTP Server (unknown error)')
+		sys.stderr.write('Failed to create HTTP Server (unknown error)\n')
 		sys.exit(1)
 	
 	try:
