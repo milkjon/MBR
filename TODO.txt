@@ -56,14 +56,14 @@
 	PRIORITY		Medium
 	STATUS			Incomplete
 
+=== Done
+
 7.	TODO			Modify the PHP code for the radio-station website to support the python proxy server as a DB
 	(Erich)			backend. The PHP code (abstracted & stripped of references to 'MB radio :P') will also eventually
 					be included in this project.
 	
-	STATUS			Almost complete :)
-
-=== Done
-
+	STATUS			DONE
+	
 2.	TO DO			The current Toolbar "implementation" of Cocoa App does not work in Tiger.
 	(Jonathan)
 	PRIORITY		Low
