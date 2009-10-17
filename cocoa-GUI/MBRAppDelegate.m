@@ -143,6 +143,11 @@
 	[self willChangeValueForKey: @"playlists"];
 	[playlists removeAllObjects];
 	[playlists addObjectsFromArray: [iTunes_ playlists]];
+	
+	NSSortDescriptor *descriptor = [[[NSSortDescriptor alloc] initWithKey:@"" ascending:YES] autorelease];
+	NSArray *sortDescriptors = [NSArray arrayWithObject: descriptor];
+	[playlists sortUsingDescriptors: sortDescriptors];
+	
 	[self didChangeValueForKey: @"playlists"];
 }
 
