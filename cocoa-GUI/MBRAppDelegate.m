@@ -19,6 +19,8 @@
 
 - (NSString *) _makeWebRequest: (NSString *) request
 {
+	if (! serverTask_) return @"";
+	
 	NSLog(@"%@", request);
 	NSURL *url = [NSURL URLWithString: [BASEURL stringByAppendingString: request]];
 	NSString *result = [NSString stringWithContentsOfURL: url];
@@ -85,20 +87,23 @@
 
 - (void) reportNextSongs
 {
+	NSLog(@"report next");
 	NSArray *songList = [iTunes_ nextFive];
 	if (! songList) return;
 	
 	NSMutableString *queryString = [NSMutableString string];	
 	for (int i = 0;   i < [songList count] && i < 5; i++)
-		[queryString appendString: [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]]];
+		[queryString appendString:  [NSString stringWithFormat: @"song%d=%@&", 
+			i+1, [songList objectAtIndex: i]]];
 	
 	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
 
 - (void) reportNowPlaying
 {
-	[self reportCurrentSong];
-	[self reportNextSongs];
+	[self performSelector:@selector(reportCurrentSong) withObject:self afterDelay:0 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
+	[self performSelector:@selector(fetchRequests) withObject:self afterDelay:1 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
+	[self performSelector:@selector(reportNextSongs) withObject:self afterDelay:3 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
 }
 
 
@@ -127,7 +132,7 @@
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
-	[self reportNextSongs];
+	[self reportNowPlaying];
 }
 
 - (IBAction) updateRequests: (id) sender
@@ -219,8 +224,7 @@
 		playlists = [[NSMutableArray alloc] init];
 		iTunes_ = [[MBiTunes alloc] init];
 		serverTask_ = nil;
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
-		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
+		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 15 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
 	}
 	return self;
 }
