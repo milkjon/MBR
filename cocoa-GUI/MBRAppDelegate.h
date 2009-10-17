@@ -19,6 +19,7 @@
 	NSTask *serverTask_;
 	
 	IBOutlet NSArrayController *requestArrayController;
+	IBOutlet NSArrayController *playlistArrayController;
 	IBOutlet NSTableView *tableView;
 }
 - (IBAction) addToiTunesPlaylist: (id) sender;
