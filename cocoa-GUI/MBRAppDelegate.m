@@ -113,9 +113,9 @@
 	MBTune* track = nil;
 	if ([sender isKindOfClass: [NSTableView class]]) {
 		if ([tableView clickedRow] == -1) return;
-		track = [[arrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
+		track = [[requestArrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
 	} else {
-		track = [[arrayController selectedObjects] objectAtIndex: 0];	
+		track = [[requestArrayController selectedObjects] objectAtIndex: 0];	
 	}
 	
 	if (! track) return;
