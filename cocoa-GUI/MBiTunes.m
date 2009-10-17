@@ -11,9 +11,13 @@
 
 - (NSString *) _runAppleScript: (NSString *) source
 {
+	NSDate *date = [NSDate date];
 	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
 	NSDictionary *err=nil;
 	NSString *result = [[script executeAndReturnError: &err] stringValue];
+	
+	NSLog(@"running Applescript took %f", -[date timeIntervalSinceNow] );
+	
 	if (err) return [NSString stringWithFormat: @"ERROR!!!, %@", err];
 	return result;
 }
