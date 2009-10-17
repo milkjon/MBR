@@ -19,6 +19,8 @@
 
 - (NSString *) _makeWebRequest: (NSString *) request
 {
+	if (! serverTask_) return @"";
+	
 	NSLog(@"%@", request);
 	NSURL *url = [NSURL URLWithString: [BASEURL stringByAppendingString: request]];
 	NSString *result = [NSString stringWithContentsOfURL: url];
@@ -37,8 +39,7 @@
 	
 	NSString *libraryURL;
 	NSEnumerator *e = [iTunesDBURLs objectEnumerator];
-	while (libraryURL = [e nextObject])
-	{
+	while (libraryURL = [e nextObject]) {
 		NSString *libraryPath = [[NSURL URLWithString: libraryURL] path];
 		if ([[NSFileManager defaultManager] fileExistsAtPath: libraryPath])
 			return libraryPath;
@@ -53,7 +54,7 @@
 {	
 	NSLog(@"get requests");
 	
-	//	if (! serverTask_) return;
+	if (! serverTask_) return;
 	NSString *result = [self _makeWebRequest: @"new-requests/"];
 	
 	// parse the result and update the array
@@ -86,19 +87,23 @@
 
 - (void) reportNextSongs
 {
+	NSLog(@"report next");
 	NSArray *songList = [iTunes_ nextFive];
-	NSMutableString *queryString = [NSMutableString string];
+	if (! songList) return;
 	
+	NSMutableString *queryString = [NSMutableString string];	
 	for (int i = 0;   i < [songList count] && i < 5; i++)
-		[queryString appendString: [NSString stringWithFormat: @"song%d=%@&", i+1, [songList objectAtIndex: i]]];
+		[queryString appendString:  [NSString stringWithFormat: @"song%d=%@&", 
+			i+1, [songList objectAtIndex: i]]];
 	
 	[self _makeWebRequest: [@"coming-up?" stringByAppendingString: queryString]];
 }
 
 - (void) reportNowPlaying
 {
-	[self reportCurrentSong];
-	[self reportNextSongs];
+	[self performSelector:@selector(reportCurrentSong) withObject:self afterDelay:0 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
+	[self performSelector:@selector(fetchRequests) withObject:self afterDelay:1 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
+	[self performSelector:@selector(reportNextSongs) withObject:self afterDelay:3 inModes:[NSArray arrayWithObject: NSDefaultRunLoopMode]];
 }
 
 
@@ -113,9 +118,9 @@
 	MBTune* track = nil;
 	if ([sender isKindOfClass: [NSTableView class]]) {
 		if ([tableView clickedRow] == -1) return;
-		track = [[arrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
+		track = [[requestArrayController arrangedObjects] objectAtIndex: [tableView clickedRow]];
 	} else {
-		track = [[arrayController selectedObjects] objectAtIndex: 0];	
+		track = [[requestArrayController selectedObjects] objectAtIndex: 0];	
 	}
 	
 	if (! track) return;
@@ -127,13 +132,28 @@
 - (IBAction) getNextSongs: (id) sender
 {
 	NSLog(@"get next songs");	
-	[self reportNextSongs];
+	[self reportNowPlaying];
 }
 
 - (IBAction) updateRequests: (id) sender
 {
 	NSLog(@"update Requests");
 	[self fetchRequests];
+}
+
+- (IBAction) updatePlaylists: (id) sender
+{
+	NSLog(@"update Playlists");
+	
+	[self willChangeValueForKey: @"playlists"];
+	[playlists removeAllObjects];
+	[playlists addObjectsFromArray: [iTunes_ playlists]];
+	
+	NSSortDescriptor *descriptor = [[[NSSortDescriptor alloc] initWithKey:@"" ascending:YES] autorelease];
+	NSArray *sortDescriptors = [NSArray arrayWithObject: descriptor];
+	[playlists sortUsingDescriptors: sortDescriptors];
+	
+	[self didChangeValueForKey: @"playlists"];
 }
 
 - (IBAction) startServer: (id) sender
@@ -148,6 +168,8 @@
 	if (!libraryPath || !port)
 		return;
 	
+	[self willChangeValueForKey: @"serverTask_"];
+	
 	serverTask_ = [NSTask 
 		launchedTaskWithLaunchPath: PYTHON
 		arguments: [NSArray arrayWithObjects: 
@@ -155,7 +177,9 @@
 			@"--port", port,
 			@"--library", libraryPath,
 			nil]];
-				
+
+	[self didChangeValueForKey: @"serverTask_"];
+	
 	[serverTask_ retain];
 }
 
@@ -164,7 +188,10 @@
 	NSLog(@"Stop Server");
 	[serverTask_ terminate];
 	[serverTask_ release];
+	[self willChangeValueForKey: @"serverTask_"];
 	serverTask_ = nil;
+	[self didChangeValueForKey: @"serverTask_"];
+
 }
 
 #pragma mark Notfications
@@ -174,9 +201,9 @@
 	NSLog(@"didFinishLaunching");
 	
 	[tableView setDoubleAction: @selector(addToiTunesPlaylist:)];
+		
+	[self updatePlaylists: nil];
 	
-	// Get playlists from iTunes
-	// Update Popup - button
 	// Select playlist that is saved to prefs.
 }
 
@@ -194,11 +221,10 @@
 	self = [super init];
 	if (self != nil) {
 		requests = [[NSMutableArray alloc] init];
-		serverTask_ = nil;
-		requestCheckTimer_ = [NSTimer scheduledTimerWithTimeInterval: 21 target: self selector: @selector(fetchRequests) userInfo: nil repeats: YES];
-		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 13 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
-		
+		playlists = [[NSMutableArray alloc] init];
 		iTunes_ = [[MBiTunes alloc] init];
+		serverTask_ = nil;
+		nowPlayingReportTimer_ = [NSTimer scheduledTimerWithTimeInterval: 15 target: self selector: @selector(reportNowPlaying) userInfo: nil repeats: YES];
 	}
 	return self;
 }
@@ -213,6 +239,7 @@
 	[nowPlayingReportTimer_ release];
 
 	[requests release];
+	[playlists release];
 	[iTunes_ release];
 	[super dealloc];
 }

@@ -17,6 +17,7 @@
 		695AD5DD10812A3F001B1514 /* MusicLibrary.py in Resources */ = {isa = PBXBuildFile; fileRef = 695AD5D910812A3F001B1514 /* MusicLibrary.py */; };
 		695AD5DE10812A3F001B1514 /* iTunesLibrary.py in Resources */ = {isa = PBXBuildFile; fileRef = 695AD5DA10812A3F001B1514 /* iTunesLibrary.py */; };
 		695AD5F110812B85001B1514 /* Debug.py in Resources */ = {isa = PBXBuildFile; fileRef = 695AD5F010812B85001B1514 /* Debug.py */; };
+		6965FA4C1082A2A2003A72DA /* getPlaylists.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6965FA4B1082A2A2003A72DA /* getPlaylists.applescript */; };
 		6994AB4F107D4FE900CC6BCD /* addToiTunes.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */; };
 		6994AB66107D6D3A00CC6BCD /* getCurrentTrack.applescript in Resources */ = {isa = PBXBuildFile; fileRef = 6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */; };
 		69E4ACC3106A0AEC0021BAEB /* MBTune.m in Sources */ = {isa = PBXBuildFile; fileRef = 69E4ACC2106A0AEC0021BAEB /* MBTune.m */; };
@@ -48,6 +49,7 @@
 		695AD5DA10812A3F001B1514 /* iTunesLibrary.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = iTunesLibrary.py; path = ../requestProxy/iTunesLibrary.py; sourceTree = SOURCE_ROOT; };
 		695AD5F010812B85001B1514 /* Debug.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = Debug.py; path = ../requestProxy/Debug.py; sourceTree = SOURCE_ROOT; };
 		695AD70010814DFE001B1514 /* TODO.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = TODO.txt; path = ../TODO.txt; sourceTree = SOURCE_ROOT; };
+		6965FA4B1082A2A2003A72DA /* getPlaylists.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getPlaylists.applescript; sourceTree = "<group>"; };
 		6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = getCurrentTrack.applescript; sourceTree = "<group>"; };
 		6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.applescript; path = addToiTunes.applescript; sourceTree = "<group>"; };
 		69E4ACC1106A0AEC0021BAEB /* MBTune.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MBTune.h; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 				6994AB31107D4A3100CC6BCD /* addToiTunes.applescript */,
 				6994AB28107D49B900CC6BCD /* getCurrentTrack.applescript */,
 				695AD4AC1080077C001B1514 /* getNextSongs.applescript */,
+				6965FA4B1082A2A2003A72DA /* getPlaylists.applescript */,
 			);
 			name = AppleScript;
 			sourceTree = "<group>";
@@ -245,9 +248,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				695AD4AD1080077C001B1514 /* getNextSongs.applescript in Resources */,
 				6994AB4F107D4FE900CC6BCD /* addToiTunes.applescript in Resources */,
 				6994AB66107D6D3A00CC6BCD /* getCurrentTrack.applescript in Resources */,
+				695AD4AD1080077C001B1514 /* getNextSongs.applescript in Resources */,
+				6965FA4C1082A2A2003A72DA /* getPlaylists.applescript in Resources */,
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
 				695AD5DB10812A3F001B1514 /* webserver.py in Resources */,

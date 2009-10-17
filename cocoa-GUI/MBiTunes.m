@@ -11,10 +11,14 @@
 
 - (NSString *) _runAppleScript: (NSString *) source
 {
+	NSDate *date = [NSDate date];
 	NSAppleScript *script = [[[NSAppleScript alloc] initWithSource: source] autorelease];
 	NSDictionary *err=nil;
 	NSString *result = [[script executeAndReturnError: &err] stringValue];
-	if (err) return [NSString stringWithFormat: @"ERROR, %@", err];
+	
+	NSLog(@"running Applescript took %f", -[date timeIntervalSinceNow] );
+	
+	if (err) return [NSString stringWithFormat: @"ERROR!!!, %@", err];
 	return result;
 }
 
@@ -29,7 +33,10 @@
 - (NSArray *) nextFive
 {
 	NSString *upcoming = [self _runAppleScript: nextTracksScript_];
-	NSArray *songList = [upcoming componentsSeparatedByString: @"\r"];	
+	if ([upcoming hasPrefix: @"ERROR!!!"])
+		return nil;
+
+	NSArray *songList = [upcoming componentsSeparatedByString: @"\r"];
 	return songList;
 }
 

@@ -10,6 +10,7 @@
 
 @interface MBRAppDelegate : NSObject {
 	NSMutableArray *requests;
+	NSMutableArray *playlists;
 	NSTimer *requestCheckTimer_;
 	NSTimer *nowPlayingReportTimer_;
 	
@@ -17,7 +18,8 @@
 
 	NSTask *serverTask_;
 	
-	IBOutlet NSArrayController *arrayController;
+	IBOutlet NSArrayController *requestArrayController;
+	IBOutlet NSArrayController *playlistArrayController;
 	IBOutlet NSTableView *tableView;
 }
 - (IBAction) addToiTunesPlaylist: (id) sender;
